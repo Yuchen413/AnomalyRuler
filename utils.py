@@ -2,9 +2,29 @@ import numpy as np
 import pandas as pd
 import os
 import shutil
+import torchvision.transforms.functional as TF
+import torch.nn as nn
 
 np.random.seed(2024)
 
+
+class AllCrop(nn.Module):
+    def __init__(self, size=(224, 224), stride=(128, 158)):
+        super(AllCrop, self).__init__()
+
+        self.height, self.width = size
+        self.stride_h, self.stride_w = stride
+
+    def forward(self, input):
+
+        _, image_height, image_width = TF.to_tensor(input).size()
+
+        all_crop = []
+        for h in range(0, image_height - self.height + 1, self.stride_h):
+            for w in range(0, image_width - self.width + 1, self.stride_w):
+                all_crop.append(TF.crop(input, h, w, self.height, self.width))
+        print(all_crop)
+        return all_crop
 def create_csv():
     source_directory = 'SHTech/train'
     file_paths = []
@@ -22,7 +42,7 @@ def create_csv():
     df.to_csv(csv_file_path, index=False)
 
 
-def random_select_data(path = 'SHTech/train.csv', num = 5, label = 0):
+def random_select_data(path = 'SHTech/test.csv', num = 5, label = 1):
     df = pd.read_csv(path)
     image_file_paths = list(df.loc[df['label'] == label, 'image_path'].values)
     selected_image_paths = np.random.choice(image_file_paths, num, replace=False)
@@ -58,11 +78,6 @@ def read_txt_to_list(path = 'SHTech/test_owlvit.txt'):
             inner_list = [item for item in inner_list]
             list_of_lists.append(inner_list)
     return list_of_lists
-
-
-
-
-
 
 
 
