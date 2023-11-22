@@ -80,57 +80,61 @@ def baseline():
     #     file_content = file.read()
     # original_list = file_content.strip().split('\n\n')
 
-
-
-def llm_deduction(txt_path, rule):
+def llm_deduction(txt_path, rule, rule_name):
     client = OpenAI(api_key="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")
-    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo"]
-    model = model_list[1]
+    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4"]
+    model = model_list[2]
     objects = read_txt_to_list(txt_path)
-    print(objects)
-    results = []
-    count_0 = 0
-    count_1 = 0
     count = 0
+    filename = f"results/{rule_name}_{model}_{txt_path.split('/')[-1]}"
+    if os.path.exists(filename):
+        os.remove(filename)
+        print(f"File {filename} has been deleted.")
+    else:
+        print(f"The file {filename} does not exist.")
 
     for obj in objects:
-        count+=1
+        count += 1
         print(f'================================{count}=============================')
-        prompt = rule + '\n' + f'''Now I am monitoring the campus and I'm given:{obj}, 
-        First, I will summarize the above description into [object, action, environment],
-        Second, reply [object, action, environment] = Normal, or Anomaly because, 
-        Finally, summarize the above and reply 'Overall, it is Normal, or Anomaly'
-        '''
-
-        response = client.completions.create(
-            model=model,
-            prompt = prompt,
-            max_tokens = 500
-        )
-        print(response.choices[0].text)
-
-        if 'Normal' in response.choices[0].text:
-            count_0 += 1
-        elif 'Anomaly' in response.choices[0].text:
-            count_1 += 1
-        results.append(response.choices[0].text)
-
-        filename = f"results/rule_v4_{model}_{txt_path.split('/')[-1]}"
-        with open(filename, 'w') as file:
-            for string in results:
-                file.write(str(count) + '\n')
-                file.write(string + '\n')
-
-
-    if txt_path.split('_')[-2] == '0':
-        print(count_0)
-        print(f'Acc:{count_0 / len(results)}')
-    elif txt_path.split('_')[-2] == '1':
-        print(count_1)
-        print(f'Acc:{count_1 / len(results)}')
-
-
-
+        with open(filename, 'a') as file:
+            file.write(f'============================{count}======================' + '\n')
+        for item in obj:
+            print(item)
+            # prompt = f'''I am monitoring the campus and I'm given:{obj[0]},
+            # To perform the task of anomaly detection, I will summarize the given description into [object, action, environment] framework:
+            #
+            # Object: I'll identify the main subjects or objects in the image.
+            # Action: I'll describe what these subjects or objects are doing.
+            # Environment: I'll describe the setting or location where the action is taking place. \n
+            # ''' + rule
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": f"You are monitoring the campus, you task is to detect the anomaly based on the given rules. The rules are: {rule}"},
+                    {"role": "user", "content": "What are in the description, as detail as possible? Reply following the template."},
+                    {"role": "assistant", "content": '''Image Summary:
+                                                        Object: People, a group of people, skateboarder
+                                                        Action: Walking, standing, riding
+                                                        Environment: Park, walkway, urban area'''},
+                    {"role": "user", "content": "Is it normal or anomaly? Reply following the template."},
+                    {"role": "assistant", "content": '''Anomaly Detection:
+                                                        [A group pf people, walking, park/walkway] = Normal based on rule 3, because walking is a common activity in a park or on a walkway in an urban area.
+                                                        [People, standing, urban area] = Normal based one rule 1,  because it is common for people to stop and stand in urban areas, possibly to rest or wait.
+                                                        [skateboarder, riding, road] = Anomaly, because it is unusual for a skateboarder to be riding on a road with pedanstrain.
+                                                        
+                                                        Since there is at least one anomaly. Overall, its Anomaly'''},
+                    {"role": "user", "content": f"Now you are given {item}. What is in the description? Reply following the template. Is it normal or anomaly? Reply following the template."},
+                ]
+            )
+            print(response.choices[0].message.content)
+            print('--------------------------------------')
+            with open(filename, 'a') as file:
+                file.write(f'----------------------{count}-----------------------' + '\n')
+                file.write(response.choices[0].message.content + '\n')
+        # with open(filename, 'w') as file:
+        #     for string in results:
+        #         file.write(str(count) + '\n')
+        #         file.write(string + '\n')
 
 
 def gpt4v_induction():
@@ -146,7 +150,7 @@ def gpt4v_induction():
             return base64.b64encode(image_file.read()).decode('utf-8')
 
 
-    image_paths = get_all_paths("SHTech/train_5_0")
+    image_paths = get_all_paths("SHTech/train_10_0")
     base64_images = [encode_image(i) for i in image_paths]
 
     headers = {
@@ -157,19 +161,29 @@ def gpt4v_induction():
     payload = {
         "model": "gpt-4-vision-preview",
         "messages": [
+            {"role": "system",
+             "content": f'''As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is derive rules for detect abnormal behavior or activity from the given images.'''},
+            {"role": "user", "content": "What in this image?"
+                                        "Please reply question for each image"},
+            {"role": "assistant", "content": '''Image 1:Individuals walking calmly on the sidewalk.
+                                                Image 2:
+                                                 '''},
+            {"role": "user", "content": "All the images are labeled as Normal, what are the Rules for Normal?"},
+            {"role": "assistant", "content": '''Rules for Normal:
+                                                1. Individuals walking calmly on the sidewalk is normal, because .
+                                                2.
+                                         '''},
+            {"role": "user", "content": "Now based on the Normal rules you have, what are the Rules for Anomaly? Please consider the objects or activities that leads to safety risk."},
+            {"role": "assistant", "content": ''' Rules for Anomaly:
+                                        1.
+                                        2.
+                                 '''},
             {
                 "role": "user",
                 "content": [
                     {
                         "type": "text",
-                        "text": "Your task is to derive rules for anomaly detection, you will be given a bunch of images labeled as 'normal'"
-                                "First describe each from perspective of [object, action, environment], as detailed as possible, and try use words or short terms "
-                                "Second, derive rules used for normal from your description you got for the first step, using the template '[object, action, environment] = normal, because', use short terms."
-                                "Third, derive rules used for anomaly, from the normal rules you got, consider what objects is potential anormaly, and what action is anormaly, using the template '[object, action, environment] = anomaly, because', use short terms."
-                                "Reply following the format:"
-                                "Rules for normal:"
-                                "Rules for anomaly:"
-                                "Summary of rules:"
+                        "text": "Now you are given 10 images, for each image, please answer: What is in the image? What are Rules for Normal? What are Rules for Anomaly? Please think step by step"
                     },
                     {
                         "type": "image_url",
@@ -200,14 +214,45 @@ def gpt4v_induction():
                         "image_url": {
                             "url": f"data:image/jpeg;base64,{base64_images[4]}"
                         },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_images[5]}"
+                        },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_images[6]}"
+                        },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_images[7]}"
+                        },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_images[8]}"
+                        },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_images[9]}"
+                        },
                     }
                 ]
             }
         ],
-        "max_tokens": 500
+        "max_tokens": 5000
     }
 
     response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+    print(response)
     print(response.json()['choices'][0]['message']['content'])
 def gpt_text2object():
     client = OpenAI(api_key="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")
@@ -250,7 +295,7 @@ def gpt4v_deduction(rule_name, prompt, image_root = "SHTech/test_50_0"):
             return base64.b64encode(image_file.read()).decode('utf-8')
 
     image_paths = sorted(get_all_paths(image_root))
-    base64_images = [encode_image(i) for i in image_paths][10:20]
+    base64_images = [encode_image(i) for i in image_paths][:20]
 
     headers = {
         "Content-Type": "application/json",
@@ -261,168 +306,121 @@ def gpt4v_deduction(rule_name, prompt, image_root = "SHTech/test_50_0"):
     results = []
     count_0 = 0
     count_1 = 0
-    # for i in range(0,5):
-    #     print(f"=============={i}===============")
-    payload = {
-        "model": model,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": prompt
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_images[0]}"
+    for i in range(len(base64_images)):
+        print(f"=============={i}===============")
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": prompt
                         },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_images[i]}"
+                            },
 
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_images[1]}"
-                        },
+                        }
+                    ]
+                }
+            ],
+            "max_tokens": 800
+        }
 
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_images[2]}"
-                        },
+        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+        print(response.json())
+        print(response.json()['choices'][0]['message']['content'])
+        filename = f"results/{rule_name}_{model}_{image_root.split('/')[-1]}"
+        with open(filename, 'a') as file:
+            file.write(f'============================{i}======================'+'\n')
+            file.write(response.json()['choices'][0]['message']['content'] + '\n')
+    #
+    # if image_root.split('_')[-1] == '0':
+    #     print(count_0)
+    #     print(f'Acc:{count_0 / len(results)}')
+    # elif image_root.split('_')[-1] == '1':
+    #     print(count_1)
+    #     print(f'Acc:{count_1 / len(results)}')
 
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_images[3]}"
-                        },
-
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_images[4]}"
-                        },
-
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_images[5]}"
-                        },
-
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_images[6]}"
-                        },
-
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_images[7]}"
-                        },
-
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_images[8]}"
-                        },
-
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_images[9]}"
-                        },
-
-                    },
-
-                ]
-            }
-        ],
-        "max_tokens": 500
-    }
-
-    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-    print(response.json())
-    print(response.json()['choices'][0]['message']['content'])
-
-    if 'Anomaly' in response.json()['choices'][0]['message']['content']:
-        count_1 += 1
-    else:
-        count_0 += 1
-
-    results.append(response.json()['choices'][0]['message']['content'])
-
-    filename = f"results/{rule_name}_{model}_{image_root.split('/')[-1]}"
-    with open(filename, 'w') as file:
-        for string in results:
-            # file.write(str(i) + '\n')
-            file.write(string + '\n')
-
-    if image_root.split('_')[-1] == '0':
-        print(count_0)
-        print(f'Acc:{count_0 / len(results)}')
-    elif image_root.split('_')[-1] == '1':
-        print(count_1)
-        print(f'Acc:{count_1 / len(results)}')
-
-def llm_induction_1(txt_path, prompt):
+def llm_induction_1(txt_path):
     client = OpenAI(api_key="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")
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo"]
-    model = model_list[1]
+    model = model_list[2]
     objects = read_txt_to_list(txt_path)
-
-    prompt = prompt + '\n' + f'''Now I am monitoring the campus and I'm given a description:{objects}, '''
-
-    response = client.completions.create(
+    response = client.chat.completions.create(
         model=model,
-        prompt=prompt,
-        max_tokens=500
+        messages=[
+            {"role": "system",
+             "content": f'''As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is derive rules for detect abnormal behavior or activity.'''},
+            # {"role": "user",
+            #  "content": "What are in the description? Reply following the template."},
+            # {"role": "assistant", "content": '''Image Summary:
+            #                                     Object: People, a group of people
+            #                                     Action: Walking, standing
+            #                                     Environment: Park, walkway, urban area'''},
+            {"role": "user", "content": "Is this description normal a anomaly based on your knowledge? "
+                                        "Please derive rules and reply following the template."},
+            {"role": "assistant", "content": '''**Rules for Normal:
+                                                1.[object, action, environment] = Normal, because I think it is safe
+                                                2.
+                                                **Rules for Anomaly:
+                                                1. [object, action, environment] = Anomaly, because there is safety risk that
+                                                2.
+                                                '''},
+            {"role": "user", "content": '''What rules are potentially wrong if the output should be ALL normal?'''},
+            {"role": "assistant", "content": '''[object, action, environment] = Anomaly is wrong
+                                        '''},
+            {"role": "user", "content": '''What's the cause for deriving the wrong rule? Is it because the description I gave is not accuracy?, e.g., contains the wrong object. 
+            Or your decision is wrong?'''},
+            {"role": "assistant", "content": ''' I think the description is wrong'''},
+            {"role": "user",
+             "content": f"Now you are given {objects}. What are in the description? Reply following the template. What is the rules you got from the observation? What rules are potentially wrong? What's the cause for deriving the wrong rule? Reply following the template."},
+        ]
     )
-    print(response.choices[0].text)
-    return response.choices[0].text
+    print(response.choices[0].message.content)
+
+
+    return response.choices[0].message.content
 
 
 def llm_induction_2(rule_stage_1):
     client = OpenAI(api_key="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")
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo"]
-    model = model_list[1]
-    prompt = f'''As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is detect abnormal behavior or activity. 
-                 I will be given a bunch of rules indicate normal.
-                 
-                 Given {rule_stage_1}, derive anomaly rules, by considering what objects is potential anomaly, 
-                 and what action is anomaly
-                 
-                 Reply using the template:
-                 
-                 **Rules for Anomaly:
-                 1. [object, action, environment] = Anomaly, because
-                 2.
-                 
-                 '''
-
-    response = client.completions.create(
+    model = model_list[2]
+    response = client.chat.completions.create(
         model=model,
-        prompt=prompt,
-        max_tokens=500
+        messages=[
+            {"role": "system",
+             "content": f'''As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is detect abnormal behavior or activity. 
+                            I will be given a bunch of rules, I need to derive anomaly rules based on them, by considering what objects is potential anomaly, 
+                            and what action is anomaly'''},
+            {"role": "user", "content": f"Given normal rules {rule_stage_1}, what is the anomaly rules? Reply following the template."},
+            {"role": "assistant", "content": '''**Rules for Anomaly:
+                                                1.[Any object, action, environment you think might cause safety issue]= Anomaly, because
+                                                2. 
+                                                '''},
+        ]
     )
-    print(response.choices[0].text)
-    return response.choices[0].text
+    print(response.choices[0].message.content)
+
+    # response = client.completions.create(
+    #     model=model,
+    #     prompt=prompt,
+    #     max_tokens=500
+    # )
+    # print(response.choices[0].text)
+    # return response.choices[0].text
 
 
 
 
 # baseline()
 # baseline_with_rule()
-# gpt4v()
+gpt4v_induction()
 # gpt_text2object()
 
 base = '''As a surveillance monitor for urban safety using the ShanghaiTech dataset, 
@@ -465,10 +463,14 @@ base = '''As a surveillance monitor for urban safety using the ShanghaiTech data
                     
                     I am monitoring the campus and I see:'''
 
-rule_v3 = """
-As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is to analyze the video footage and identify anything that could be considered abnormal behavior or activity. 
-I will first describe the image as detailed as possible, including all the objects, their actions, and the environment in the image
-I will then be given a rule that indicates normal or anomaly based on my description, for example:
+rule_v3_enhanced = """
+To perform the task of anomaly detection, I will first describe the contents of the image based on the [object, action, environment] framework:
+
+Object: I'll identify the main subjects or objects in the image.
+Action: I'll describe what these subjects or objects are doing.
+Environment: I'll describe the setting or location where the action is taking place.
+
+I will follow the rules below:
 
 Rules for normal:
 1. [Person, walking, path] = normal, because walking on paths is expected.
@@ -482,47 +484,72 @@ Rules for anomaly:
 2. [Person, cycling, path] = anomaly, because sidewalks are typically for pedestrian use not bicycles.
 3. [Vehicles, driving, open area] = anomaly, because vehicles are not typically allowed in areas designated for pedestrians.
 4. [Person, scooting, paved path] = anomaly, because scooting may not be allowed on certain paths.
-5. [Person, non-walking, road] = anomaly, because walkways are meant for walking, but not other unusual actions
+5. [Person, running, road] = anomaly, because running may be dangerous
 
-Now I am monitoring the campus and I'm given a {image}, following the rules, reply {image description} = Normal or {image description} = Anomaly, because
+For each image, my reply will be like the following example:
+
+Image Summary:
+Object: People
+Action: Walking, standing
+Environment: Park, walkway, urban area
+
+Anomaly Detection:
+[People, walking, park/walkway] = Normal based on rule x, because walking is a common activity in a park or on a walkway in an urban area.
+[People, standing, urban area] = Normal based one rule y,  because it is common for people to stop and stand in urban areas, possibly to rest or wait.
 """
 
-rule_v4 = f"""
-As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is to analyze the video footage and identify anything that could be considered abnormal behavior or activity. I will be given a rule that indicates normal or anomaly, for example:
-
+rule_v5_enhanced = '''
 **Rules for Normal:
-1. [people, walking, street] = Normal, because it is common for people to walk down the street in a group.
-2. [backpack, carrying, group] = Normal, because individuals often carry bags or backpacks while walking in larger groups.
-3. [people, walking, sidewalk] = Normal, because walking on a sidewalk is a common activity that people engage in.
-4. [people, walking, street] = Normal, because it is common to see people walking down a pedestrian-friendly street.
-5. [pedestrian walkway, walking, outdoors] = Normal, because it is expected for people to walk on pedestrian walkways and enjoy the outdoors.
+1. [people, walking/standing, street] = Normal
+2. [people, walking, sidewalk] = Normal
+3. [a group of people, walking] = Normal
+4. [person, walking, carrying object] = Normal
+5. [person, sitting, on bench] = Normal
+6. [people, walking, in park] = Normal
+7. [person, talking, on cell phone] = Normal 
+8. [person, walking, near building] = Normal
+9. No human-related actions or behaviors =  Normal
 
 
 **Rules for Anomaly:
-1. [person, crawling, public space] = Anomaly, because crawling is an unusual form of movement in a public space.
-2. [backpack, dragging, non-pedestrian area] = Anomaly, because dragging a backpack in a non-pedestrian area may indicate a potential threat or suspicious behavior.
-3. [person, sprinting, crowded area] = Anomaly, because sprinting in a crowded area can cause disturbance or be indicative of a potential threat.
-4. [vehicle, driving, pedestrian walkway] = Anomaly, because driving a vehicle on a pedestrian walkway can cause harm to pedestrians and is not a normal use of the space.
-5. [person, climbing, non-climbable structure] = Anomaly, because climbing a non-climbable structure is not a common behavior and may indicate malicious intent or danger.
-"""
+1. [person, running, street/sidewalk] = Anomaly, because it is unusual for a person to be moving at a faster pace on a regular street/sidewalk.
+2. [skateboarder, riding, road] = Anomaly, because it is unusual for a skateboarder to be riding on a road with pedestrians.
+3. [bike/motorcycle, riding, sidewalk] = Anomaly, because it is unusual for a non-pedestrian vehicle to be riding.
+4. [person, laying down, sidewalk] = Anomaly, because it is uncommon for a person to be laying down on a sidewalk.
+5. [Vehicles, driving, open area] = Anomaly, because vehicles are not typically allowed in areas designated for pedestrians.
+6. [people, fighting/pushing, anywhere] = Anomaly, because violent activity are not permitted on campus.
+7. [person, riding, street/sidewalk] = Anomaly, because it is unusual for a non-pedestrian vehicle to be riding.
+8. [person, jumping] = Anomaly, because it is unusual for a person to be jumping on street.
+'''
 
-induce_rule = """
-        As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is detect abnormal behavior or activity. 
-        I will be given a description of scene, and I will induce the rule for future anomaly detection. 
+rule_v6_with_wrong = '''
+**Normal Rules**
+1. [people, walking, sidewalk] = Normal, because it is a common activity in urban areas.
+2. [people, sitting/standing, open area] = Normal, as it is a common activity in open area
+3. [woman, walking, sidewalk, carrying handbag] = Normal, as it represents a regular pedestrian activity.
+4. [group of people, walking, sidewalk, bike path] = Normal, as it signifies a group activity in a common urban area.
+5. [group of people, skateboarding, sidewalk] = Anomaly, because skateboarding on the sidewalk is not a common or safe activity.
+6. No human-related activities = Normal
+7. Any other object, action, environment that is safe = Normal
 
-        First, I will summarize the description into [object, action, environment]
-        
-        Second, for each description, I will derive rules based on my knowledge and reply following the template:
-        
-        **Rules for Normal:
-        1. [object, action, environment] = Normal, because
-        2. 
-        """
 
-gpt4v_deduction(rule_name='rule_v3',prompt=rule_v3, image_root="SHTech/test_50_1")
-# rule_stage_1 = llm_induction_1('SHTech/train_5_0_instructblip.txt', prompt=induce_rule)
+**Potentially Wrong Rules:**
+Rule 5 - [group of people, skateboarding, sidewalk] = Anomaly
+
+**Cause for the Potentially Wrong Rule:**
+The potentially wrong rule could be due to misclassifying the activity of skateboarding on the sidewalk as an anomaly instead of recognizing it as a normal activity. It might be possible that the surveillance monitor has misinterpreted the behavior as unusual or potentially unsafe. Alternatively, if the surveillance monitor has been specifically trained to consider skateboarding on the sidewalk as an anomaly, then the rule may not be wrong but rather intentional based on pre-defined criteria.
+
+**Anormaly Rules**
+1. [group of people, skateboarding, sidewalk] = Anomaly, because skateboarding on the sidewalk poses a safety risk to pedestrians and is not allowed in most urban areas.
+2. [people, bicycling, sidewalk or road] = Anomaly, because riding on the sidewalk poses a safety risk to pedestrians and is not allowed in most urban areas.
+3. [person, loitering, near parked cars] = Anomaly, because loitering near parked cars can indicate suspicious or potentially criminal behavior.
+4. [person, throwing objects, public space] = Anomaly, because throwing objects in a public space can be dangerous and may cause harm to individuals or property.
+5. [person, climbing, building facade] = Anomaly, because climbing a building facade is a dangerous and unauthorized activity that can lead to accidents or property damage.
+6. [vehicle, driving in the wrong direction, one-way street] = Anomaly, because driving in the wrong direction on a one-way street is a traffic violation and poses a risk to other vehicles and pedestrians.
+7. Any other object, action, environment that is unsafe = Anomaly'''
+
+# gpt4v_deduction(rule_name='rule_v5_enhanced',prompt=rule_v5_enhanced, image_root="SHTech/test_50_1")
+# rule_stage_1 = llm_induction_1('SHTech/object_data/train_5_0_llava-v1.5-13b.txt')
 # rule_stage_2 = llm_induction_2(rule_stage_1)
 
-
-
-# llm_deduction('SHTech/test_50_1_instructblip.txt', rule=rule_v4)
+# llm_deduction('SHTech/object_data/test_50_0_llava-v1.5-13b.txt', rule=rule_v6_with_wrong, rule_name='rule_v6_with_wrong')

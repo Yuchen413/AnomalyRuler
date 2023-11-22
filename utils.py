@@ -4,8 +4,30 @@ import os
 import shutil
 import torchvision.transforms.functional as TF
 import torch.nn as nn
+from IPython.display import display
+from PIL import Image
 
 np.random.seed(2024)
+
+def split_list(data, size):
+    # Splits 'data' into sublists of length 'size'
+    return [data[i:i + size] for i in range(0, len(data), size)]
+def display_images_in_one_row(images):
+    # Calculate total width and maximum height
+    total_width = sum(img.width for img in images)
+    max_height = max(img.height for img in images)
+
+    # Create a new blank image with the calculated size
+    composite_image = Image.new('RGB', (total_width, max_height))
+
+    # Paste each image into the composite image
+    x_offset = 0
+    for img in images:
+        composite_image.paste(img, (x_offset, 0))
+        x_offset += img.width
+
+    # Show the composite image
+    composite_image.show()
 
 
 class AllCrop(nn.Module):
@@ -16,14 +38,17 @@ class AllCrop(nn.Module):
         self.stride_h, self.stride_w = stride
 
     def forward(self, input):
-
-        _, image_height, image_width = TF.to_tensor(input).size()
+        # Assuming 'input' is a PIL Image
+        image_width, image_height = input.size
 
         all_crop = []
         for h in range(0, image_height - self.height + 1, self.stride_h):
             for w in range(0, image_width - self.width + 1, self.stride_w):
-                all_crop.append(TF.crop(input, h, w, self.height, self.width))
-        print(all_crop)
+                crop = TF.crop(input, h, w, self.height, self.width)
+                all_crop.append(crop)
+        # Optional: Convert crops to tensors if needed
+        # all_crop = [TF.to_tensor(c) for c in all_crop]
+        # display_images_in_one_row(all_crop)
         return all_crop
 def create_csv():
     source_directory = 'SHTech/train'
@@ -42,7 +67,7 @@ def create_csv():
     df.to_csv(csv_file_path, index=False)
 
 
-def random_select_data(path = 'SHTech/test.csv', num = 5, label = 1):
+def random_select_data(path = 'SHTech/train.csv', num = 1000, label = 0):
     df = pd.read_csv(path)
     image_file_paths = list(df.loc[df['label'] == label, 'image_path'].values)
     selected_image_paths = np.random.choice(image_file_paths, num, replace=False)
@@ -58,7 +83,6 @@ def random_select_data(path = 'SHTech/test.csv', num = 5, label = 1):
         image_filename= '_'.join(path_parts[-2:])
         destination_path = os.path.join(destination_directory, image_filename)
         shutil.copy2(image_path, destination_path)
-
 
 def get_all_paths(directory):
     """Get all file paths under a directory and return them as a list."""
@@ -79,5 +103,7 @@ def read_txt_to_list(path = 'SHTech/test_owlvit.txt'):
             list_of_lists.append(inner_list)
     return list_of_lists
 
-
-
+def read_txt(path = 'SHTech/test_owlvit.txt'):
+    with open(path, 'r') as file:
+        lines = [line.strip() for line in file]
+    return lines
