@@ -1,0 +1,15 @@
+**Rules for Normal:
+1. people = Normal
+2. A group of people =  Normal
+2. standing = Normal
+3. walking = Normal
+4. sitting = Normal
+5. talking on cell phone = Normal
+6. carrying bags = Normal
+7. No human-related actions or behaviors =  Normal
+8. ['0'] = Normal, since ['0'] means No People
+9. Any combination of Normal = Normal
+
+**Rules for Anomaly:
+1. [Any objects not in Normal] = Anomaly
+2. [Any activities not in Normal] = Anomaly

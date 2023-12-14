@@ -1,5 +1,6 @@
-[people, skateboarding, sidewalk] = Anomaly, because skateboarding on the sidewalk poses a safety risk to pedestrians
-[people, bicycling, sidewalk or road] = Anomaly, because riding on the sidewalk is not allowed in most urban areas.
-[person, throwing objects, public space] = Anomaly, because throwing objects in a public space can be dangerous.
-[person, climbing, building facade] = Anomaly, because climbing a building facade is a dangerous.
-[vehicle, people, driving, street] = Anomaly, because driving on street with people existing can be a threat to safety.
+[person, running/cycling, street/sidewalk] = Anomaly, because it is unusual for a person to be moving at a faster pace on a regular street/sidewalk.
+[skateboarder, riding, road] = Anomaly, because it is unusual for a skateboarder to be riding on a road instead of the designated sidewalk area.
+[bike/motorcycle, riding, sidewalk] = Anomaly, because it is unusual for a non-pedestrian vehicle to be riding on a sidewalk.
+[person, laying down, sidewalk] = Anomaly, because it is uncommon for a person to be laying down on a sidewalk.
+[people, shouting/yelling, in a quiet area] = Anomaly, because it is unusual for a group of people to be making loud noises in a typically quiet area.
+[Vehicles, driving, open area] = Anomaly, because vehicles are not typically allowed in areas designated for pedestrians.

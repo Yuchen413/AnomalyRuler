@@ -1,11 +1,11 @@
-import numpy as np
+import torch
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2"
-from transformers import Blip2Processor, Blip2ForConditionalGeneration,AutoProcessor, AutoModelForCausalLM, OwlViTProcessor, OwlViTForObjectDetection, InstructBlipProcessor, InstructBlipForConditionalGeneration
+from transformers import LlamaTokenizer, AutoProcessor, AutoModelForCausalLM, OwlViTProcessor, OwlViTForObjectDetection,InstructBlipProcessor, InstructBlipForConditionalGeneration, Blip2Processor, Blip2ForConditionalGeneration
 from tqdm import tqdm
 from utils import *
-from LLaVA.llava.eval.run_llava import *
-from LLaVA.llava.mm_utils import get_model_name_from_path
+# from LLaVA.llava.eval.run_llava import *
+# from LLaVA.llava.mm_utils import get_model_name_from_path
 
 np.random.seed(2024)
 torch.manual_seed(2024)
@@ -36,7 +36,7 @@ def llava(model_path = 'liuhaotian/llava-v1.5-13b', image_path = 'SHTech/test_5_
         args = type('Args', (), {
             "model_base": None,
             "model_name": model_name,
-            "query": 'What are in the image? Use one short sentence to describe the objects and their actions',
+            "query": 'What are in the image? Use the short sentence start from A image of ',
             "conv_mode": None,
         })()
 
@@ -105,8 +105,6 @@ def llava(model_path = 'liuhaotian/llava-v1.5-13b', image_path = 'SHTech/test_5_
                   'w') as file:
             for inner_list in text:
                 file.write(inner_list + '\n')
-
-
 
 def blip(model_path, image_path = "SHTech/test_5_1"):
     image_paths = sorted(get_all_paths(image_path))
@@ -180,8 +178,56 @@ def owlvit(model_path = "google/owlvit-large-patch14", image_path = "SHTech/test
         for inner_list in objects:
             file.write(','.join(map(str, inner_list)) + '\n')
 
+def cogvlm(mode = 'chat', image_path = 'SHTech/test_5_0', model_path = 'lmsys/vicuna-7b-v1.5'):
+    tokenizer = LlamaTokenizer.from_pretrained(model_path)
+    model = AutoModelForCausalLM.from_pretrained(
+        'THUDM/cogvlm-chat-hf',
+        torch_dtype=torch.bfloat16,
+        low_cpu_mem_usage=True,
+        device_map='auto',
+        trust_remote_code=True
+    ).eval()
+
+    query_act = 'How many people are in the images and what is each of them doing? Think step by step'
+    query_env = 'What are in the images other than people? Think step by step'
+    queries = [query_act,query_env]
+    # query = 'How many people are in the images? What is each of them doing? Think step by step'
+    image_paths = sorted(get_all_paths(image_path))
+    batch_images = [Image.open(p) for p in image_paths]
+    description = []
+
+    for query in queries:
+        for image in batch_images:
+            if mode == 'chat':
+                inputs = model.build_conversation_input_ids(tokenizer, query=query, history=[], images=[image])  # vqa mode
+            else:
+                inputs = model.build_conversation_input_ids(tokenizer, query=query, history=[], images=[image],
+                                                            template_version='vqa')  # vqa mode
+
+            inputs = {
+                'input_ids': inputs['input_ids'].unsqueeze(0).to('cuda'),
+                'token_type_ids': inputs['token_type_ids'].unsqueeze(0).to('cuda'),
+                'attention_mask': inputs['attention_mask'].unsqueeze(0).to('cuda'),
+                'images': [[inputs['images'][0].to('cuda').to(torch.bfloat16)]],
+            }
+
+            gen_kwargs = {"max_length": 2048, "do_sample": False}
+
+            with torch.no_grad():
+                outputs = model.generate(**inputs, **gen_kwargs)
+                outputs = outputs[:, inputs['input_ids'].shape[1]:]
+                description.append(tokenizer.decode(outputs[0], skip_special_tokens=True))
+                print(tokenizer.decode(outputs[0], skip_special_tokens=True))
+
+    combined_description = [f"{x}, {y}" for x, y in zip(description[0:len(batch_images)],description[len(batch_images):])]
+    print(len(combined_description))
+    with open(f'{image_path.split("/")[0]}/object_data/{image_path.split("/")[1]}_{model_path.split("/")[1]}_act+env.txt',
+              'w') as file:
+        for inner_list in combined_description:
+            file.write(inner_list + '\n')
+
 # owlvit(model_path = "google/owlvit-large-patch14", image_path = "SHTech/train_5_0")
-
 # blip('Salesforce/blip2-flan-t5-xl', "SHTech/test_50_0")
+# llava(model_path = 'liuhaotian/llava-v1.5-13b', image_path = 'SHTech/test_50_1', crop = False)
 
-llava(model_path = 'liuhaotian/llava-v1.5-13b', image_path = 'SHTech/test_50_0', crop = True)
+cogvlm(mode='vqa', image_path = 'SHTech/train_5_0')

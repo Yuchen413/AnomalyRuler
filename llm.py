@@ -102,4 +102,86 @@ def solar():
     # output_text = tokenizer.decode(output[0], skip_special_tokens=True)
     # print(output_text)
 
-solar()
+
+def mixtral_induct(desc_path='SHTech/object_data/train_100_0_vicuna-7b-v1.5_act+env.txt'):
+    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForCausalLM.from_pretrained(model_id, low_cpu_mem_usage=True, torch_dtype=torch.float16,
+                                                 device_map='auto').eval()
+    answers = []
+    filename = f"rule/{desc_path.split('/')[-1].split('.')[0]}_mistral7B.txt"
+    if os.path.exists(filename):
+        os.remove(filename)
+        print(f"File {filename} has been deleted.")
+    else:
+        print(f"The file {filename} does not exist.")
+
+    objects = read_txt_to_one_list(desc_path)
+    print(objects)
+    # for obj in objects:
+    text = f'''Given the description, your task is to summarize the normal activities or normal objects.
+        Now you are given the description {objects}, 
+        Answer:
+        1.'''
+    inputs = tokenizer(text, return_tensors="pt").to(device)
+    outputs = model.generate(**inputs, max_new_tokens=1000)
+    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    answers.append(answer)
+    # print(f'-----------------------------------------------------{count}-----------------------------------------------------------------------')
+    print(answer)
+    # with open(filename, 'a') as file:
+    #     for answer in answers:
+    #         file.write(
+    #             f'-----------------------------------------------------{count}-----------------------------------------------------------------------' + '\n')
+    #         file.write(answer + '\n')
+    return
+
+def mixtral_deduct(desc_path_n, desc_path_a,  rule_path):
+    # model_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForCausalLM.from_pretrained(model_id, low_cpu_mem_usage=True, torch_dtype=torch.float16, device_map ='auto').eval()
+
+    desc_paths = [desc_path_n,desc_path_a]
+    answers = []
+    preds = []
+    labels = [0]*50 + [1]*50
+
+    filename = f"results/{rule_path.split('/')[1].split('.')[0]}_mistral7B_{desc_path_n.split('/')[-1].replace('test_50_0_','')}"
+    if os.path.exists(filename):
+        os.remove(filename)
+        print(f"File {filename} has been deleted.")
+    else:
+        print(f"The file {filename} does not exist.")
+
+    count = 0
+    for desc_path in desc_paths:
+        objects = read_line(desc_path)
+        rule = open(rule_path, "r").read()
+
+        for obj in objects:
+            count+=1
+            text = f'''You are monitoring the campus, you task is to detect the anomaly based on the given rules. The rules are: 
+            {rule}. 
+            Now you are given {obj}. Is it normal or anomaly? Answer Anomaly even if only one Anomaly exists. Otherwise answer Normal. 
+                       
+            Answer:'''
+            inputs = tokenizer(text, return_tensors="pt").to(device)
+            outputs = model.generate(**inputs, max_new_tokens=1000)
+            answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            preds.append(post_process(answer))
+            answers.append(answer)
+            print(f'-----------------------------------------------------{count}-----------------------------------------------------------------------')
+            print(answer)
+            with open(filename, 'a') as file:
+                for answer in answers:
+                    file.write(f'-----------------------------------------------------{count}-----------------------------------------------------------------------' + '\n')
+                    file.write(answer + '\n')
+    scores = [0.9 if x == 1 else 0.1 if x == 0 else 0.5 for x in preds]
+    print(preds)
+    print(f'ACC: {accuracy_score(labels, preds)}')
+    print(f'Precision: {precision_score(labels, preds)}')
+    print(f'Recall: {recall_score(labels, preds)}')
+    print(f'AUC: {roc_auc_score(labels, scores)}')
+
+mixtral_deduct('SHTech/object_data/test_50_0_vicuna-7b-v1.5_act+env.txt', 'SHTech/object_data/test_50_1_vicuna-7b-v1.5_act+env.txt', 'rule/train_100_0_vicuna-7b-v1.5_act+env.txt')

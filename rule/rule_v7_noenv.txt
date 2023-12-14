@@ -1,0 +1,21 @@
+**Rules for Normal:
+1. [people, walking] = Normal
+2. [people, standing] = Normal
+3. [a group of people, walking] = Normal
+4. [person, walking, carrying bags] = Normal
+5. [person, sitting] = Normal
+6. [person, talking, on cell phone] = Normal
+7. No human-related actions or behaviors =  Normal
+8. ['0'] = Normal, since ['0'] means No People.
+
+**Rules for Anomaly:
+1. [person, running] = Anomaly
+2. [skateboarder, riding] = Anomaly
+3. [bike/motorcycle] = Anomaly
+4. [person, laying down] = Anomaly
+5. [Vehicles/Van, driving] = Anomaly
+6. [people, fighting/pushing] = Anomaly
+7. [person, riding] = Anomaly
+8. [person, jumping] = Anomaly
+9. [Vehicles/Van, people] = Anomaly
+10. [person, Not standing/Not walking/Not sitting] = Anomaly

@@ -6,6 +6,8 @@ import torchvision.transforms.functional as TF
 import torch.nn as nn
 from IPython.display import display
 from PIL import Image
+import re
+from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, recall_score
 
 np.random.seed(2024)
 
@@ -67,7 +69,7 @@ def create_csv():
     df.to_csv(csv_file_path, index=False)
 
 
-def random_select_data(path = 'SHTech/train.csv', num = 1000, label = 0):
+def random_select_data(path = 'SHTech/train.csv', num = 100, label = 0):
     df = pd.read_csv(path)
     image_file_paths = list(df.loc[df['label'] == label, 'image_path'].values)
     selected_image_paths = np.random.choice(image_file_paths, num, replace=False)
@@ -103,7 +105,55 @@ def read_txt_to_list(path = 'SHTech/test_owlvit.txt'):
             list_of_lists.append(inner_list)
     return list_of_lists
 
-def read_txt(path = 'SHTech/test_owlvit.txt'):
+def read_txt_to_one_list(path = 'SHTech/test_owlvit.txt'):
+    lines = []
     with open(path, 'r') as file:
-        lines = [line.strip() for line in file]
+        for line in file:
+            lines += line.strip().split(',')
     return lines
+
+def read_line(path = 'SHTech/test_owlvit.txt'):
+    with open(path, 'r') as file:
+        lines = [line.strip().split('\n') for line in file]
+    return lines
+
+
+def post_process(text):
+    key_phrases = ['Normal', 'Anomaly']
+    answer_index = text.find('Answer:')
+    if answer_index != -1:
+        # Extract the substring starting from 'Answer:'
+        substring = text[answer_index + len('Answer:'):]
+        # Split the substring into words and return the first one that contains a key phrase
+        words = substring.split('.')[0]
+        for phrase in key_phrases:
+            if phrase in words:
+                if phrase=='Anomaly' : return 1
+                if phrase=='Normal': return 0
+    print("Neither 'Normal' nor 'Anomaly' found in the specified locations.")
+    return -1
+
+def read_and_process_file(file_path = 'SHTech/object_data/train_100_0_vicuna-7b-v1.5_act+env.txt'):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        content = file.read()
+    # Splitting based on numbers or commas
+    split_content = re.split(r'\d+\.|,', content)
+    # Removing non-English parts
+    # Assuming non-English parts can be identified, for example, by being enclosed in parentheses
+    # This step will depend on how the non-English text is formatted
+    processed_content = [part for part in split_content if not re.search(r'[^\x00-\x7F]+', part) and not None]
+    cleaned_content = [re.sub(r'[\d\W]+', ' ', part) for part in processed_content]
+
+    # Removing redundant parts
+    # This step will also depend on what is considered redundant in your context
+    unique_content = list(set(cleaned_content))
+
+    output_path = f"rule/{file_path.split('/')[-1]}"
+
+    with open(output_path, 'w', encoding='utf-8') as output_file:
+        for line in unique_content:
+            output_file.write(line.strip() + '\n')
+
+    return unique_content
+
+read_and_process_file()

@@ -3,13 +3,11 @@ from utils import *
 import base64
 import re
 
-
-
 def baseline():
     client = OpenAI(api_key="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")
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo"]
     model = model_list[0]
-    txt_path = 'SHTech/object_data/test_50_0_owlvit.txt'
+    txt_path = 'SHTech/object_data/test_50_1_vicuna-7b-v1.5_baseline.txt'
     objects = read_txt_to_list(txt_path)
     results = []
     for obj in objects:
@@ -80,11 +78,13 @@ def baseline():
     #     file_content = file.read()
     # original_list = file_content.strip().split('\n\n')
 
+baseline()
+
 def llm_deduction(txt_path, rule, rule_name):
     client = OpenAI(api_key="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")
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4"]
     model = model_list[2]
-    objects = read_txt_to_list(txt_path)
+    objects = read_line(txt_path)
     count = 0
     filename = f"results/{rule_name}_{model}_{txt_path.split('/')[-1]}"
     if os.path.exists(filename):
@@ -100,13 +100,6 @@ def llm_deduction(txt_path, rule, rule_name):
             file.write(f'============================{count}======================' + '\n')
         for item in obj:
             print(item)
-            # prompt = f'''I am monitoring the campus and I'm given:{obj[0]},
-            # To perform the task of anomaly detection, I will summarize the given description into [object, action, environment] framework:
-            #
-            # Object: I'll identify the main subjects or objects in the image.
-            # Action: I'll describe what these subjects or objects are doing.
-            # Environment: I'll describe the setting or location where the action is taking place. \n
-            # ''' + rule
             response = client.chat.completions.create(
                 model=model,
                 messages=[
@@ -114,15 +107,14 @@ def llm_deduction(txt_path, rule, rule_name):
                     {"role": "user", "content": "What are in the description, as detail as possible? Reply following the template."},
                     {"role": "assistant", "content": '''Image Summary:
                                                         Object: People, a group of people, skateboarder
-                                                        Action: Walking, standing, riding
-                                                        Environment: Park, walkway, urban area'''},
+                                                        Action: Walking, standing, riding'''},
                     {"role": "user", "content": "Is it normal or anomaly? Reply following the template."},
                     {"role": "assistant", "content": '''Anomaly Detection:
-                                                        [A group pf people, walking, park/walkway] = Normal based on rule 3, because walking is a common activity in a park or on a walkway in an urban area.
-                                                        [People, standing, urban area] = Normal based one rule 1,  because it is common for people to stop and stand in urban areas, possibly to rest or wait.
-                                                        [skateboarder, riding, road] = Anomaly, because it is unusual for a skateboarder to be riding on a road with pedanstrain.
+                                                        [A group pf people, walking] = Normal based on rule 3, because walking is a common activity in a park or on a walkway in an urban area.
+                                                        [People, standing] = Normal based one rule 1,  because it is common for people to stop and stand in urban areas, possibly to rest or wait.
+                                                        [skateboarder, riding] = Anomaly, because it is unusually to see a skateboarder to be riding on a road.
                                                         
-                                                        Since there is at least one anomaly. Overall, its Anomaly'''},
+                                                        Overall, its Anomaly. Since there is anomaly above. '''},
                     {"role": "user", "content": f"Now you are given {item}. What is in the description? Reply following the template. Is it normal or anomaly? Reply following the template."},
                 ]
             )
@@ -131,11 +123,6 @@ def llm_deduction(txt_path, rule, rule_name):
             with open(filename, 'a') as file:
                 file.write(f'----------------------{count}-----------------------' + '\n')
                 file.write(response.choices[0].message.content + '\n')
-        # with open(filename, 'w') as file:
-        #     for string in results:
-        #         file.write(str(count) + '\n')
-        #         file.write(string + '\n')
-
 
 def gpt4v_induction():
     import base64
@@ -356,29 +343,19 @@ def llm_induction_1(txt_path):
         messages=[
             {"role": "system",
              "content": f'''As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is derive rules for detect abnormal behavior or activity.'''},
-            # {"role": "user",
-            #  "content": "What are in the description? Reply following the template."},
-            # {"role": "assistant", "content": '''Image Summary:
-            #                                     Object: People, a group of people
-            #                                     Action: Walking, standing
-            #                                     Environment: Park, walkway, urban area'''},
-            {"role": "user", "content": "Is this description normal a anomaly based on your knowledge? "
-                                        "Please derive rules and reply following the template."},
-            {"role": "assistant", "content": '''**Rules for Normal:
-                                                1.[object, action, environment] = Normal, because I think it is safe
-                                                2.
-                                                **Rules for Anomaly:
-                                                1. [object, action, environment] = Anomaly, because there is safety risk that
-                                                2.
-                                                '''},
-            {"role": "user", "content": '''What rules are potentially wrong if the output should be ALL normal?'''},
-            {"role": "assistant", "content": '''[object, action, environment] = Anomaly is wrong
-                                        '''},
-            {"role": "user", "content": '''What's the cause for deriving the wrong rule? Is it because the description I gave is not accuracy?, e.g., contains the wrong object. 
-            Or your decision is wrong?'''},
-            {"role": "assistant", "content": ''' I think the description is wrong'''},
             {"role": "user",
-             "content": f"Now you are given {objects}. What are in the description? Reply following the template. What is the rules you got from the observation? What rules are potentially wrong? What's the cause for deriving the wrong rule? Reply following the template."},
+             "content": "What are in the description? Reply following the template."},
+            {"role": "assistant", "content": '''Image Summary:
+                                                Object: People, a group of people
+                                                Action: Walking, standing
+                                                Environment: Park, walkway, urban area'''},
+            {"role": "user", "content": "Based on the assumption that this description are normal, "
+                                        "Please derive rules for normal and reply following the template."},
+            {"role": "assistant", "content": '''**Rules for Normal:
+                                                1.[people, walking, urban area] = Normal, because
+                                                2.'''},
+            {"role": "user",
+             "content": f"Now you are given {objects}. What are in the description? Reply following the template. What are the rules you got from the observation? Reply following the template and give any many as you can."},
         ]
     )
     print(response.choices[0].message.content)
@@ -415,13 +392,6 @@ def llm_induction_2(rule_stage_1):
     # print(response.choices[0].text)
     # return response.choices[0].text
 
-
-
-
-# baseline()
-# baseline_with_rule()
-gpt4v_induction()
-# gpt_text2object()
 
 base = '''As a surveillance monitor for urban safety using the ShanghaiTech dataset, 
                     my job is to analyze the video footage and identify anything that could be 
@@ -522,6 +492,17 @@ rule_v5_enhanced = '''
 8. [person, jumping] = Anomaly, because it is unusual for a person to be jumping on street.
 '''
 
+rule_v5_cogvlm_normal = '''
+**Rules for Normal:** 
+1. [people, walking, urban area] = Normal, because people walking in an urban area is a common and expected behavior.
+2. [people, standing, urban area] = Normal, as people standing in an urban area can be attributed to waiting or observing their surroundings.
+3. [people, walking with bags, urban area] = Normal, since people carrying bags while walking in an urban area is a common occurrence.
+4. [people, walking together, urban area] = Normal, because people walking together in an urban area, especially engaged in conversation, is a typical social behavior.
+5. No human-related actions or behaviors =  Normal
+**Rules for Anomaly:**
+Any object, activities that are not covered by Normal = Anomaly
+
+'''
 rule_v6_with_wrong = '''
 **Normal Rules**
 1. [people, walking, sidewalk] = Normal, because it is a common activity in urban areas.
@@ -548,8 +529,35 @@ The potentially wrong rule could be due to misclassifying the activity of skateb
 6. [vehicle, driving in the wrong direction, one-way street] = Anomaly, because driving in the wrong direction on a one-way street is a traffic violation and poses a risk to other vehicles and pedestrians.
 7. Any other object, action, environment that is unsafe = Anomaly'''
 
-# gpt4v_deduction(rule_name='rule_v5_enhanced',prompt=rule_v5_enhanced, image_root="SHTech/test_50_1")
-# rule_stage_1 = llm_induction_1('SHTech/object_data/train_5_0_llava-v1.5-13b.txt')
-# rule_stage_2 = llm_induction_2(rule_stage_1)
+rule_v7_noenv = '''
+**Rules for Normal:
+1. [people, walking] = Normal
+2. [people, standing] = Normal
+3. [a group of people, walking] = Normal
+4. [person, walking, carrying object] = Normal
+5. [person, sitting] = Normal
+6. [person, talking, on cell phone] = Normal 
+7. No human-related actions or behaviors =  Normal
 
-# llm_deduction('SHTech/object_data/test_50_0_llava-v1.5-13b.txt', rule=rule_v6_with_wrong, rule_name='rule_v6_with_wrong')
+
+**Rules for Anomaly:
+1. [person, running] = Anomaly
+2. [skateboarder, riding] = Anomaly
+3. [bike/motorcycle, riding] = Anomaly
+4. [person, laying down] = Anomaly
+5. [Vehicles/Van, driving] = Anomaly
+6. [people, fighting/pushing] = Anomaly
+7. [person, riding] = Anomaly
+8. [person, jumping] = Anomaly
+9. [Vehicles/Van, people] = Anomaly
+10. [person, Not standing/Not walking/Not sitting] = Anomaly
+'''
+
+
+# gpt4v_deduction(rule_name='rule_v5_enhanced',prompt=rule_v5_enhanced, image_root="SHTech/test_50_1")
+# rule_stage_1 = llm_induction_1('SHTech/object_data/train_5_0_vicuna-7b-v1.5.txt')
+# rule_stage_2 = llm_induction_2(rule_stage_1)
+# llm_induction_1('SHTech/object_data/train_5_0_llava-v1.5-13b.txt')
+
+
+# llm_deduction('SHTech/object_data/test_50_1_vicuna-7b-v1.5.txt', rule_v5_cogvlm_normal, 'rule_v5_cogvlm_normal')

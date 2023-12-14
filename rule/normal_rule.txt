@@ -1,5 +1,7 @@
-[people, walking, sidewalk] = Normal, because walking on a sidewalk is a common activity in urban areas.
-[people, sitting, open area] = Normal, as sitting in the open area is a common activity in open area
-[people, standing, street] = Normal, as standing on street represents a regular pedestrian activity.
-[group of people, walking, sidewalk] = Normal, as it signifies a group activity in a common urban area.
-No human-related activities = Normal, as it has no threat to safety.
+[people, walking, street/sidewalk] = Normal
+[person, walking, carrying object] = Normal
+[person, sitting, on bench] = Normal
+[people, walking, in park] = Normal
+[person, walking, in waterway] = Normal
+[person, talking, on cell phone] = Normal
+[person, walking, near building] = Normal
