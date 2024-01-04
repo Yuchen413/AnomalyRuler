@@ -7,6 +7,10 @@ from PIL import Image
 from tqdm import tqdm
 import torch
 from utils import *
+from collections import Counter
+from openai_api import llm_rule_correction
+from image2text import cogvlm
+
 
 np.random.seed(2024)
 torch.manual_seed(2024)
@@ -103,8 +107,9 @@ def solar():
     # print(output_text)
 
 
-def mixtral_induct(desc_path='SHTech/object_data/train_100_0_vicuna-7b-v1.5_act+env.txt'):
-    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
+def mixtral_induct(desc_path='SHTech/object_data/train_5_0_cogvlm.txt'):
+    model_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+    # model_id = "mistralai/Mistral-7B-Instruct-v0.2"
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(model_id, low_cpu_mem_usage=True, torch_dtype=torch.float16,
                                                  device_map='auto').eval()
@@ -116,10 +121,11 @@ def mixtral_induct(desc_path='SHTech/object_data/train_100_0_vicuna-7b-v1.5_act+
     else:
         print(f"The file {filename} does not exist.")
 
-    objects = read_txt_to_one_list(desc_path)
+    objects = read_line(desc_path)
     print(objects)
     # for obj in objects:
-    text = f'''Given the description, your task is to summarize the normal activities or normal objects.
+    text = f'''As a surveillance monitor for urban safety, my job is to analyze the video footage and identify anything that could be 
+               considered abnormal behavior or environment. Given the description, your task is to derive rules for anomaly detection.
         Now you are given the description {objects}, 
         Answer:
         1.'''
@@ -135,6 +141,76 @@ def mixtral_induct(desc_path='SHTech/object_data/train_100_0_vicuna-7b-v1.5_act+
     #             f'-----------------------------------------------------{count}-----------------------------------------------------------------------' + '\n')
     #         file.write(answer + '\n')
     return
+
+
+def mixtral_verifier(desc_path, rule_path):
+    # model_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForCausalLM.from_pretrained(model_id, low_cpu_mem_usage=True, torch_dtype=torch.float16,
+                                                 device_map='auto').eval()
+
+    cog_model = AutoModelForCausalLM.from_pretrained(
+        'THUDM/cogvlm-chat-hf',
+        torch_dtype=torch.bfloat16,
+        low_cpu_mem_usage=True,
+        device_map='auto',
+        trust_remote_code=True
+    ).eval()
+
+    # filename = 'rule/rule_gpt4_wrong.txt'
+    # if os.path.exists(filename):
+    #     os.remove(filename)
+    #     print(f"File {filename} has been deleted.")
+    # else:
+    #     print(f"The file {filename} does not exist.")
+
+    answers = []
+    preds = []
+    labels = [0]*100
+
+    count = 0
+    # objects = read_line(desc_path)
+    rule = open(rule_path, "r").read()
+    for i in range(20):
+        selected_image_paths = random_select_data_without_copy(path='SHTech/train.csv', num=5, label=0)
+        objects = cogvlm(model= cog_model, mode='chat', image_paths=selected_image_paths)
+        rule_number_n = []
+        rule_number_a = []
+        wrong_answer = []
+        for obj in objects:
+            print(f'-----------------------------------------------------{count}-----------------------------------------------------------------------')
+            print(obj)
+            count += 1
+            text = f'''You are monitoring the campus, you task is to detect the anomaly based on the given rules. The rules are: 
+            {rule}. 
+            Now you are given {[obj]}. Is it normal or anomaly? Answer Normal if it is consistent with the given rules. Otherwise answer Anomaly. 
+            Answer:'''
+
+            inputs = tokenizer(text, return_tensors="pt").to(device)
+            outputs = model.generate(**inputs, max_new_tokens=1000)
+            answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            preds.append(post_process(answer))
+            answers.append(answer)
+            if post_process(answer) == 1:
+                print('==>Get Wrong')
+                # rule_number_n += re.findall(r'\b\d+\b', str(re.split(r'Rule used:|Rule:', answer)[1:]))
+                # rule_number_a += re.findall(r'\b\d+\b', str(re.split(r'Rule used:|Rule:', answer)[1:]))
+                wrong_answer.append(answer)
+                # with open(filename, 'a') as file:
+                #     file.write(
+                #         f'-----------------------------------------------------{count}-----------------------------------------------------------------------' + '\n')
+                #     file.write(answer + '\n')
+            print(answer)
+        if len(wrong_answer) > 0:
+            rule = llm_rule_correction(wrong_answer)
+    print(preds)
+    print(f'ACC: {accuracy_score(labels, preds)}')
+    print(f'Precision: {precision_score(labels, preds)}')
+    print(f'Recall: {recall_score(labels, preds)}')
+
+
+# mixtral_verifier('SHTech/object_data/train_100_0_cogvlm.txt','rule/rule_gpt4.txt')
 
 def mixtral_deduct(desc_path_n, desc_path_a,  rule_path):
     # model_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
@@ -162,10 +238,15 @@ def mixtral_deduct(desc_path_n, desc_path_a,  rule_path):
         for obj in objects:
             count+=1
             text = f'''You are monitoring the campus, you task is to detect the anomaly based on the given rules. The rules are: 
-            {rule}. 
-            Now you are given {obj}. Is it normal or anomaly? Answer Anomaly even if only one Anomaly exists. Otherwise answer Normal. 
-                       
-            Answer:'''
+                        {rule}. 
+                        Now you are given {obj}. Is it normal or anomaly? Answer Anomaly if anomaly exists. Otherwise answer Normal. Think step by step. 
+                        
+                        Answer:'''
+            # text = f'''You are monitoring the campus, you task is to detect the anomaly based on the given rules. The rules are:
+            # {rule}.
+            # Now you are given {obj}. Is it normal or anomaly? Answer Anomaly even if only one Anomaly exists. Otherwise answer Normal. Think step by step.
+            #
+            # Answer:'''
             inputs = tokenizer(text, return_tensors="pt").to(device)
             outputs = model.generate(**inputs, max_new_tokens=1000)
             answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
@@ -184,4 +265,4 @@ def mixtral_deduct(desc_path_n, desc_path_a,  rule_path):
     print(f'Recall: {recall_score(labels, preds)}')
     print(f'AUC: {roc_auc_score(labels, scores)}')
 
-mixtral_deduct('SHTech/object_data/test_50_0_vicuna-7b-v1.5_act+env.txt', 'SHTech/object_data/test_50_1_vicuna-7b-v1.5_act+env.txt', 'rule/train_100_0_vicuna-7b-v1.5_act+env.txt')
+mixtral_deduct('SHTech/object_data/test_50_0_cogvlm.txt', 'SHTech/object_data/test_50_1_cogvlm.txt', 'rule/rule_gpt4_revised.txt')

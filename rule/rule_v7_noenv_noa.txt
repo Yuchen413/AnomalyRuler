@@ -7,7 +7,3 @@
 6. [person, talking, on cell phone] = Normal
 7. No human-related actions or behaviors =  Normal
 8. ['0'] = Normal, since ['0'] means No People.
-
-**Rules for Anomaly:
-1. [Any objects not in Normal] = Anomaly
-1. [Any activities not in Normal] = Anomaly

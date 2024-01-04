@@ -178,56 +178,85 @@ def owlvit(model_path = "google/owlvit-large-patch14", image_path = "SHTech/test
         for inner_list in objects:
             file.write(','.join(map(str, inner_list)) + '\n')
 
-def cogvlm(mode = 'chat', image_path = 'SHTech/test_5_0', model_path = 'lmsys/vicuna-7b-v1.5'):
-    tokenizer = LlamaTokenizer.from_pretrained(model_path)
-    model = AutoModelForCausalLM.from_pretrained(
-        'THUDM/cogvlm-chat-hf',
-        torch_dtype=torch.bfloat16,
-        low_cpu_mem_usage=True,
-        device_map='auto',
-        trust_remote_code=True
-    ).eval()
+def cogvlm(model, image_paths, mode = 'chat', root_path = None, model_path = 'lmsys/vicuna-7b-v1.5'):
+    from nltk.tokenize import word_tokenize
+    from nltk.corpus import wordnet
+    # nltk.download('punkt')
+    # nltk.download('averaged_perceptron_tagger')
 
-    query_act = 'How many people are in the images and what is each of them doing? Think step by step'
-    query_env = 'What are in the images other than people? Think step by step'
-    queries = [query_act,query_env]
+    tokenizer = LlamaTokenizer.from_pretrained(model_path)
+
+    # model = AutoModelForCausalLM.from_pretrained(
+    #     'THUDM/cogvlm-chat-hf',
+    #     torch_dtype=torch.bfloat16,
+    #     low_cpu_mem_usage=True,
+    #     device_map='auto',
+    #     trust_remote_code=True
+    # ).eval()
+
+    query= 'How many people are in the image and what is each of them doing? What are in the images other than people? Think step by step'
+    # query_env = 'What are in the images other than people? Think step by step'
+    # queries = [query_act, query_env]
     # query = 'How many people are in the images? What is each of them doing? Think step by step'
-    image_paths = sorted(get_all_paths(image_path))
+
+    if root_path != None:
+        image_paths = sorted(get_all_paths(root_path))
+
     batch_images = [Image.open(p) for p in image_paths]
     description = []
 
-    for query in queries:
-        for image in batch_images:
-            if mode == 'chat':
-                inputs = model.build_conversation_input_ids(tokenizer, query=query, history=[], images=[image])  # vqa mode
-            else:
-                inputs = model.build_conversation_input_ids(tokenizer, query=query, history=[], images=[image],
-                                                            template_version='vqa')  # vqa mode
+    # for count, query in enumerate(queries):
+    for image in batch_images:
+        if mode == 'chat':
+            inputs = model.build_conversation_input_ids(tokenizer, query=query, history=[], images=[image])  # vqa mode
+        else:
+            inputs = model.build_conversation_input_ids(tokenizer, query=query, history=[], images=[image],
+                                                        template_version='vqa')  # vqa mode
 
-            inputs = {
-                'input_ids': inputs['input_ids'].unsqueeze(0).to('cuda'),
-                'token_type_ids': inputs['token_type_ids'].unsqueeze(0).to('cuda'),
-                'attention_mask': inputs['attention_mask'].unsqueeze(0).to('cuda'),
-                'images': [[inputs['images'][0].to('cuda').to(torch.bfloat16)]],
-            }
+        inputs = {
+            'input_ids': inputs['input_ids'].unsqueeze(0).to('cuda'),
+            'token_type_ids': inputs['token_type_ids'].unsqueeze(0).to('cuda'),
+            'attention_mask': inputs['attention_mask'].unsqueeze(0).to('cuda'),
+            'images': [[inputs['images'][0].to('cuda').to(torch.bfloat16)]],
+        }
 
-            gen_kwargs = {"max_length": 2048, "do_sample": False}
+        gen_kwargs = {"max_length": 2048, "do_sample": False}
 
-            with torch.no_grad():
-                outputs = model.generate(**inputs, **gen_kwargs)
-                outputs = outputs[:, inputs['input_ids'].shape[1]:]
-                description.append(tokenizer.decode(outputs[0], skip_special_tokens=True))
-                print(tokenizer.decode(outputs[0], skip_special_tokens=True))
+        with torch.no_grad():
+            outputs = model.generate(**inputs, **gen_kwargs)
+            outputs = outputs[:, inputs['input_ids'].shape[1]:]
+            # if count == 0:
+            #     description_act.append(read_and_process_file(tokenizer.decode(outputs[0], skip_special_tokens=True)))
+            #     print(read_and_process_file(tokenizer.decode(outputs[0], skip_special_tokens=True)))
+            # else:
+            description.append(tokenizer.decode(outputs[0], skip_special_tokens=True))
+            print(tokenizer.decode(outputs[0], skip_special_tokens=True))
 
-    combined_description = [f"{x}, {y}" for x, y in zip(description[0:len(batch_images)],description[len(batch_images):])]
-    print(len(combined_description))
-    with open(f'{image_path.split("/")[0]}/object_data/{image_path.split("/")[1]}_{model_path.split("/")[1]}_act+env.txt',
-              'w') as file:
-        for inner_list in combined_description:
-            file.write(inner_list + '\n')
+    # combined_description = [f"{x}, {y}" for x, y in zip(description[0:len(batch_images)],description[len(batch_images):])]
+    # print(len(combined_description))
+
+    # with open(f'{image_path.split("/")[0]}/object_data/{image_path.split("/")[1]}_cogvlm.txt',
+    #           'w') as file:
+    #     for inner_list in description:
+    #         file.write(str(inner_list) + '\n')
+
+            # file.write(re.sub(r'[\d]+', '', inner_list) + '\n') # remove numbers
+    # with open(f'{image_path.split("/")[0]}/object_data/{image_path.split("/")[1]}_cogvlm_env.txt',
+    #           'w') as file:
+    #     for inner_list in description_env:
+    #         file.write(inner_list + '\n')
+    return description
 
 # owlvit(model_path = "google/owlvit-large-patch14", image_path = "SHTech/train_5_0")
 # blip('Salesforce/blip2-flan-t5-xl', "SHTech/test_50_0")
 # llava(model_path = 'liuhaotian/llava-v1.5-13b', image_path = 'SHTech/test_50_1', crop = False)
 
-cogvlm(mode='vqa', image_path = 'SHTech/train_5_0')
+# cog_model = AutoModelForCausalLM.from_pretrained(
+#     'THUDM/cogvlm-chat-hf',
+#     torch_dtype=torch.bfloat16,
+#     low_cpu_mem_usage=True,
+#     device_map='auto',
+#     trust_remote_code=True
+# ).eval()
+#
+# cogvlm(model = cog_model, mode='vqa', root_path= 'SHTech/test_50_0', image_paths=None)

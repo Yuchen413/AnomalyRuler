@@ -78,7 +78,7 @@ def baseline():
     #     file_content = file.read()
     # original_list = file_content.strip().split('\n\n')
 
-baseline()
+# baseline()
 
 def llm_deduction(txt_path, rule, rule_name):
     client = OpenAI(api_key="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")
@@ -335,27 +335,31 @@ def gpt4v_deduction(rule_name, prompt, image_root = "SHTech/test_50_0"):
 
 def llm_induction_1(txt_path):
     client = OpenAI(api_key="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")
-    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo"]
-    model = model_list[2]
-    objects = read_txt_to_list(txt_path)
+    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
+    model = model_list[3]
+    objects = read_line(txt_path)
+    # objects = read_txt_to_list(txt_path)
     response = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system",
-             "content": f'''As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is derive rules for detect abnormal behavior or activity.'''},
+             "content": f'''As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is derive rules for detect abnormal activities or object.'''},
             {"role": "user",
              "content": "What are in the description? Reply following the template."},
             {"role": "assistant", "content": '''Image Summary:
                                                 Object: People, a group of people
                                                 Action: Walking, standing
                                                 Environment: Park, walkway, urban area'''},
-            {"role": "user", "content": "Based on the assumption that this description are normal, "
-                                        "Please derive rules for normal and reply following the template."},
+            # {"role": "user", "content": "Please first summarize the activities, and count its frequency and list them from high to low:"},
+            # {"role": "assistant", "content": '''**Activities:
+            #                     1. [walking]: 105,'''},
+            {"role": "user", "content": "Based on the assumption that the given description are normal, "
+                                        "Please derive rules for normal using terms as short as possible, and reply following the template"},
             {"role": "assistant", "content": '''**Rules for Normal:
-                                                1.[people, walking, urban area] = Normal, because
-                                                2.'''},
+                                                1. '''},
+
             {"role": "user",
-             "content": f"Now you are given {objects}. What are in the description? Reply following the template. What are the rules you got from the observation? Reply following the template and give any many as you can."},
+             "content": f"Now you are given {objects}. What are the rules you got from the observation? Reply following the template."},
         ]
     )
     print(response.choices[0].message.content)
@@ -364,22 +368,52 @@ def llm_induction_1(txt_path):
     return response.choices[0].message.content
 
 
-def llm_induction_2(rule_stage_1):
+def llm_rule_correction(objects):
     client = OpenAI(api_key="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")
-    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo"]
-    model = model_list[2]
+    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
+    model = model_list[3]
+    # objects = read_line(txt_path)
+    # objects = read_txt_to_list(txt_path)
     response = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system",
-             "content": f'''As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is detect abnormal behavior or activity. 
-                            I will be given a bunch of rules, I need to derive anomaly rules based on them, by considering what objects is potential anomaly, 
-                            and what action is anomaly'''},
-            {"role": "user", "content": f"Given normal rules {rule_stage_1}, what is the anomaly rules? Reply following the template."},
-            {"role": "assistant", "content": '''**Rules for Anomaly:
-                                                1.[Any object, action, environment you think might cause safety issue]= Anomaly, because
-                                                2. 
+             "content": f'''As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is correct and improve rules for detect abnormal activities.'''},
+            # {"role": "user",
+            #  "content": "What are in the description? Reply following the template."},
+            # {"role": "assistant", "content": '''Image Summary:
+            #                                     Object: People, a group of people
+            #                                     Action: Walking, standing
+            #                                     Environment: Park, walkway, urban area'''},
+            {"role": "user", "content": "You are given the rules and the wrong detection results based on these rules, the correct detection results should be normal."
+                                        "Please adjusting the existing rules, and reply following the template"},
+            {"role": "assistant", "content": '''**Rules for Normal Human Activities:
+                                                1. 
+                                                **Rules for Normal Non-Human Objects:
+                                                1.
                                                 '''},
+            {"role": "user",
+             "content": f"Now you are given {objects}. Can you improve the rules? Please only output the rules."},
+        ]
+    )
+    print(response.choices[0].message.content)
+    return response.choices[0].message.content
+
+
+def llm_induction_2(rule_stage_1):
+    client = OpenAI(api_key="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")
+    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview"]
+    model = model_list[3]
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system",
+             "content": f'''I will be given a bunch of normal rules, I need to derive anomaly rules based on them, by considering what behavior or objects is potential anomaly'''},
+            {"role": "user", "content": f"Given normal rules {rule_stage_1}, what are the anomaly rules? Reply following the template and use terms as short as possible"},
+            # {"role": "assistant", "content": '''**Rules for Anomaly:
+            #                                     1.[Any object, action, environment you think might cause safety issue]= Anomaly, because
+            #                                     2.
+            #                                     '''},
         ]
     )
     print(response.choices[0].message.content)
@@ -467,7 +501,6 @@ Anomaly Detection:
 [People, walking, park/walkway] = Normal based on rule x, because walking is a common activity in a park or on a walkway in an urban area.
 [People, standing, urban area] = Normal based one rule y,  because it is common for people to stop and stand in urban areas, possibly to rest or wait.
 """
-
 rule_v5_enhanced = '''
 **Rules for Normal:
 1. [people, walking/standing, street] = Normal
@@ -491,7 +524,6 @@ rule_v5_enhanced = '''
 7. [person, riding, street/sidewalk] = Anomaly, because it is unusual for a non-pedestrian vehicle to be riding.
 8. [person, jumping] = Anomaly, because it is unusual for a person to be jumping on street.
 '''
-
 rule_v5_cogvlm_normal = '''
 **Rules for Normal:** 
 1. [people, walking, urban area] = Normal, because people walking in an urban area is a common and expected behavior.
@@ -528,7 +560,6 @@ The potentially wrong rule could be due to misclassifying the activity of skateb
 5. [person, climbing, building facade] = Anomaly, because climbing a building facade is a dangerous and unauthorized activity that can lead to accidents or property damage.
 6. [vehicle, driving in the wrong direction, one-way street] = Anomaly, because driving in the wrong direction on a one-way street is a traffic violation and poses a risk to other vehicles and pedestrians.
 7. Any other object, action, environment that is unsafe = Anomaly'''
-
 rule_v7_noenv = '''
 **Rules for Normal:
 1. [people, walking] = Normal
@@ -557,7 +588,10 @@ rule_v7_noenv = '''
 # gpt4v_deduction(rule_name='rule_v5_enhanced',prompt=rule_v5_enhanced, image_root="SHTech/test_50_1")
 # rule_stage_1 = llm_induction_1('SHTech/object_data/train_5_0_vicuna-7b-v1.5.txt')
 # rule_stage_2 = llm_induction_2(rule_stage_1)
-# llm_induction_1('SHTech/object_data/train_5_0_llava-v1.5-13b.txt')
+rule_stage_1 = llm_induction_1('SHTech/object_data/train_5_0_cogvlm.txt')
+rule_stage_2 = llm_induction_2(rule_stage_1)
+
+# llm_rule_correction('/home/yyang/PycharmProjects/anomaly_detection/rule/rule_gpt4_wrong.txt')
 
 
 # llm_deduction('SHTech/object_data/test_50_1_vicuna-7b-v1.5.txt', rule_v5_cogvlm_normal, 'rule_v5_cogvlm_normal')

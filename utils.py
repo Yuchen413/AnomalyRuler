@@ -7,6 +7,9 @@ import torch.nn as nn
 from IPython.display import display
 from PIL import Image
 import re
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import wordnet
 from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, recall_score
 
 np.random.seed(2024)
@@ -69,11 +72,11 @@ def create_csv():
     df.to_csv(csv_file_path, index=False)
 
 
-def random_select_data(path = 'SHTech/train.csv', num = 100, label = 0):
+def random_select_data(path = 'SHTech/train.csv', num = 5, label = 0):
     df = pd.read_csv(path)
     image_file_paths = list(df.loc[df['label'] == label, 'image_path'].values)
     selected_image_paths = np.random.choice(image_file_paths, num, replace=False)
-    print(len(set(selected_image_paths)))
+    # print(len(set(selected_image_paths)))
     destination_directory = path[:-4]+'_'+str(num)+'_'+str(label)
     if not os.path.exists(destination_directory):
         os.makedirs(destination_directory)
@@ -85,6 +88,13 @@ def random_select_data(path = 'SHTech/train.csv', num = 100, label = 0):
         image_filename= '_'.join(path_parts[-2:])
         destination_path = os.path.join(destination_directory, image_filename)
         shutil.copy2(image_path, destination_path)
+
+def random_select_data_without_copy(path = 'SHTech/train.csv', num = 5, label = 0):
+    df = pd.read_csv(path)
+    image_file_paths = list(df.loc[df['label'] == label, 'image_path'].values)
+    selected_image_paths = np.random.choice(image_file_paths, num, replace=False)
+    return selected_image_paths
+    # print(len(set(selected_image_paths)))
 
 def get_all_paths(directory):
     """Get all file paths under a directory and return them as a list."""
@@ -156,4 +166,30 @@ def read_and_process_file(file_path = 'SHTech/object_data/train_100_0_vicuna-7b-
 
     return unique_content
 
-read_and_process_file()
+
+
+
+
+def get_wordnet_pos(treebank_tag):
+    '''
+    #Ensure NLTK resources are downloaded (this needs to be done once)
+    nltk.download('punkt')
+    nltk.download('averaged_perceptron_tagger')
+    nltk.download('wordnet')
+    '''
+    if treebank_tag.startswith('V'):
+        return wordnet.VERB
+    return None
+
+def read_and_process_file(content):
+
+    # Tokenize and tag words in the content
+    tokens = word_tokenize(content)
+    tagged = nltk.pos_tag(tokens)
+
+    # Filter for verbs ending with 'ing'
+    verbs_with_ing = [word for word, tag in tagged if get_wordnet_pos(tag) == wordnet.VERB and word.endswith('ing')]
+
+    # Removing redundant parts
+    unique_verbs = list(set(verbs_with_ing))
+    return ', '.join(unique_verbs)
