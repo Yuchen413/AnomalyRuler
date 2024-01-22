@@ -244,29 +244,25 @@ def cogvlm(model, image_paths, mode = 'chat', root_path = None, model_path = 'lm
 
     return description
 
-def continue_frame_SH():
-    file_path = 'SHTech/test.csv'  # Replace with your actual file path
+def continue_frame_SH(data_root_name):
+    file_path = f'{data_root_name}/test.csv'  # Replace with your actual file path
     df = pd.read_csv(file_path)
-
-    # Define the position and length of the number segment
-    # For example, if the number segment starts at character 11 and is of length 7 (like 'NN_NNNN'), set the following:
-    start_position = 12
-    segment_length = 7
+    image_path_sample = df['image_path'][0]
+    last_slash_pos = image_path_sample.rfind('/')
+    second_last_slash_pos = image_path_sample.rfind('/', 0, last_slash_pos)
 
     # Extract all unique number segments from the paths
-    unique_segments = df.iloc[:, 0].apply(lambda x: x[start_position:start_position + segment_length]).unique()
-    # selected_segment =  np.random.choice(unique_segments, 1, replace=False)
+    unique_segments = df.iloc[:, 0].apply(lambda x: x[second_last_slash_pos+1:last_slash_pos]).unique()
+    if not os.path.exists(f'{data_root_name}/test_frame'):
+        os.makedirs(f'{data_root_name}/test_frame')
     for i in unique_segments:
-        filtered_df = df[df.iloc[:, 0].apply(lambda x: x[start_position:start_position+segment_length] == i)]
-        # paths = filtered_df.iloc[:, 0].tolist()
-        filtered_df.to_csv(f'SHTech/test_frame/test_{i}.csv', index=False)
+        filtered_df = df[df.iloc[:, 0].apply(lambda x: x[second_last_slash_pos+1:last_slash_pos]== i)]
+        filtered_df.to_csv(f'{data_root_name}/test_frame/test_{i}.csv', index=False)
 
 
-# continue_frame_SH()
-# paths = continue_frame_SH()
-# print(paths)
+# continue_frame_SH('ped2')
 
-def get_description_frame(root_path):
+def get_description_frame(data_root_name):
     cog_model = AutoModelForCausalLM.from_pretrained(
         'THUDM/cogvlm-chat-hf',
         torch_dtype=torch.bfloat16,
@@ -274,18 +270,20 @@ def get_description_frame(root_path):
         device_map='auto',
         trust_remote_code=True
     ).eval()
-    all_video_csv_paths = get_all_paths(root_path)
+    all_video_csv_paths = get_all_paths(f'{data_root_name}/test_frame')
     for video_csv_path in all_video_csv_paths:
         name = video_csv_path.split('/')[-1].split('.')[0]
         print(name)
         df = pd.read_csv(video_csv_path)
         img_paths_per_video = df.iloc[:, 0].tolist()
         descriptions_per_video = cogvlm(model=cog_model, mode='chat', image_paths=img_paths_per_video)
-        with open(f'SHTech/test_frame_description/{name}.txt', 'w') as file:
+        if not os.path.exists(f'{data_root_name}/test_frame_description'):
+            os.makedirs(f'{data_root_name}/test_frame_description')
+        with open(f'{data_root_name}/test_frame_description/{name}.txt', 'w') as file:
             for inner_list in descriptions_per_video:
                 file.write(inner_list + '\n')
 
-# get_description_frame('SHTech/test_frame')
+get_description_frame('ped2')
 
 
 
