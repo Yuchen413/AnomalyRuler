@@ -1,0 +1,52 @@
+**Anomaly Human Activities:**
+1. Running or jumping
+2. Using any non-walking movement such as riding a bicycle or scooter, skateboarding
+3. Moving with usually speed such as in hurry
+4. Person lying or bending down on the ground
+5. Walking with usually item such as trolley, cart or large luggage
+6. Aggressive or unusual movements such as fighting
+7. Loitering around trash bin
+8. Climbing on trees or into manhole/utility access points
+9. Tampering with manhole covers
+10. Loitering suspiciously around the trash bin
+11. Engaging in physical altercation
+12. Lingering without a clear purpose near a sensitive area
+
+**Anomaly Non-Human Objects:**
+1. Missing, removed, or ajar manhole covers
+2. Ground transportations such as vehicles, vans, bicycles.
+3. Unattended bags or objects (security threat)
+4. Unusual objects (vehicles, large unattended luggage, etc.)
+5. Unauthorized posters or signs
+6. Damaged manhole cover or trees
+7. Abandoned items in a public area
+8. Yellow objects (when not commonly seen)
+9. Graffiti on building windows or vandalism to a fence
+10. Obstructions on pedestrian crossing
+11. Fire hydrant spraying water without presence of emergency services
+12. Unidentified objects near the tall structure
+13. Smoke or fire coming from a utility access point
+14. Objects thrown or falling from a height
+
+**Rules for Normal Human Activities:**
+1. Walking alone or with another person
+2. Standing and using a mobile device
+3. Walking on the sidewalk
+4. Walking towards or away from a building
+5. Entering a building
+6. Standing near a trash bin
+7. Waiting at traffic lights
+8. Walking on pedestrian crossing
+9. Sitting on bench or ground
+
+**Rules for Normal Non-Human Objects:**
+1. Manhole covers on the ground or street
+2. Trees along the street or Plants present
+3. Trash bin in vicinity or placed beside the street
+4. Posters on glass door
+5. Static building with glass windows
+6. Fence along the water
+7. Pedestrian crossing markings visible
+8. Standing fire hydrant
+9. Static tall structure in the background
+10. Utility access points on the ground

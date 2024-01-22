@@ -2,10 +2,62 @@ import torch
 from torch.utils.data import Dataset
 from transformers import CLIPProcessor, CLIPModel
 from utils import *
+import random
+import torch
+import numpy as np
+import cv2
+import glob
+import os
+import scipy.io as scio
+from torch.utils.data import Dataset
+import pandas as pd
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 for i in range(torch.cuda.device_count()):
     print(f"Device {i}: {torch.cuda.get_device_name(i)}")
+
+
+
+class Label_loader_save:
+    def __init__(self,name):
+        self.name = name
+        self.frame_path = f'{name}/testing'
+        self.mat_path = f'{name}/{name}.mat'
+        video_folders = os.listdir(self.frame_path)
+        video_folders.sort()
+        self.video_folders = [os.path.join(self.frame_path, aa) for aa in video_folders]
+
+    def __call__(self):
+        data = self.load_ucsd_avenue()
+        df = pd.DataFrame(data, columns=['image_path', 'label'])
+        df.to_csv(f'{self.name}/test.csv', index=False)
+
+    def load_ucsd_avenue(self):
+        abnormal_events = scio.loadmat(self.mat_path, squeeze_me=True)['gt']
+        all_data = []
+        for i, folder in enumerate(self.video_folders):
+            frame_files = sorted(os.listdir(folder))
+            length = len(frame_files)
+            sub_video_gt = np.zeros((length,), dtype=np.int8)
+
+            one_abnormal = abnormal_events[i]
+            if one_abnormal.ndim == 1:
+                one_abnormal = one_abnormal.reshape((one_abnormal.shape[0], -1))
+
+            for j in range(one_abnormal.shape[1]):
+                start = one_abnormal[0, j] - 1
+                end = one_abnormal[1, j]
+                sub_video_gt[start: end] = 1
+
+            for frame, label in zip(frame_files, sub_video_gt):
+                all_data.append([os.path.join(folder, frame), label])
+
+        return all_data
+
+# gt_loader = Label_loader_save('avenue')  # Get gt labels.
+# gt = gt_loader()
+
+
 class TrainDataset(Dataset):
     def __init__(self, path = 'SHTech/train_1000_0.pt'):
         self.x = torch.load(path)

@@ -143,20 +143,21 @@ def mixtral_induct(desc_path='SHTech/object_data/train_5_0_cogvlm.txt'):
     return
 
 
-def mixtral_verifier(desc_path, rule_path):
+def mixtral_verifier(cog_model, tokenizer, model, rule):
     # model_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
-    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-    model = AutoModelForCausalLM.from_pretrained(model_id, low_cpu_mem_usage=True, torch_dtype=torch.float16,
-                                                 device_map='auto').eval()
 
-    cog_model = AutoModelForCausalLM.from_pretrained(
-        'THUDM/cogvlm-chat-hf',
-        torch_dtype=torch.bfloat16,
-        low_cpu_mem_usage=True,
-        device_map='auto',
-        trust_remote_code=True
-    ).eval()
+    # model_id = "mistralai/Mistral-7B-Instruct-v0.2"
+    # tokenizer = AutoTokenizer.from_pretrained(model_id)
+    # model = AutoModelForCausalLM.from_pretrained(model_id, low_cpu_mem_usage=True, torch_dtype=torch.float16,
+    #                                              device_map='auto').eval()
+
+    # cog_model = AutoModelForCausalLM.from_pretrained(
+    #     'THUDM/cogvlm-chat-hf',
+    #     torch_dtype=torch.bfloat16,
+    #     low_cpu_mem_usage=True,
+    #     device_map='auto',
+    #     trust_remote_code=True
+    # ).eval()
 
     # filename = 'rule/rule_gpt4_wrong.txt'
     # if os.path.exists(filename):
@@ -164,19 +165,16 @@ def mixtral_verifier(desc_path, rule_path):
     #     print(f"File {filename} has been deleted.")
     # else:
     #     print(f"The file {filename} does not exist.")
-
     answers = []
     preds = []
-    labels = [0]*100
-
+    labels = [0]*25
     count = 0
     # objects = read_line(desc_path)
-    rule = open(rule_path, "r").read()
-    for i in range(20):
+    # rule = open(rule_path, "r").read()
+    rule_number_used = []
+    for i in range(5):
         selected_image_paths = random_select_data_without_copy(path='SHTech/train.csv', num=5, label=0)
         objects = cogvlm(model= cog_model, mode='chat', image_paths=selected_image_paths)
-        rule_number_n = []
-        rule_number_a = []
         wrong_answer = []
         for obj in objects:
             print(f'-----------------------------------------------------{count}-----------------------------------------------------------------------')
@@ -184,9 +182,8 @@ def mixtral_verifier(desc_path, rule_path):
             count += 1
             text = f'''You are monitoring the campus, you task is to detect the anomaly based on the given rules. The rules are: 
             {rule}. 
-            Now you are given {[obj]}. Is it normal or anomaly? Answer Normal if it is consistent with the given rules. Otherwise answer Anomaly. 
+            Now you are given {[obj]}. Which rule you are using? Answer the rule number. Is it normal or anomaly? Answer Anomaly even if only one anomaly rule matches, otherwise answer Normal. Think step by step.
             Answer:'''
-
             inputs = tokenizer(text, return_tensors="pt").to(device)
             outputs = model.generate(**inputs, max_new_tokens=1000)
             answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
@@ -194,75 +191,79 @@ def mixtral_verifier(desc_path, rule_path):
             answers.append(answer)
             if post_process(answer) == 1:
                 print('==>Get Wrong')
-                # rule_number_n += re.findall(r'\b\d+\b', str(re.split(r'Rule used:|Rule:', answer)[1:]))
-                # rule_number_a += re.findall(r'\b\d+\b', str(re.split(r'Rule used:|Rule:', answer)[1:]))
                 wrong_answer.append(answer)
+            else:
+                print('==>Count #Rule')
+                rule_num = list(set(re.findall(r'\d', str(re.split(r'Answer:', answer)[1:]))))
+                print(rule_num)
+                rule_number_used += rule_num
+                # print(re.findall(r'\b\d+\b', str(re.split(r'Rule used:|Rule:|Rule|rule', answer)[1:])))
                 # with open(filename, 'a') as file:
                 #     file.write(
                 #         f'-----------------------------------------------------{count}-----------------------------------------------------------------------' + '\n')
                 #     file.write(answer + '\n')
             print(answer)
-        if len(wrong_answer) > 0:
-            rule = llm_rule_correction(wrong_answer)
+        # if len(wrong_answer) > 0:
+        #     rule = llm_rule_correction(wrong_answer)
     print(preds)
     print(f'ACC: {accuracy_score(labels, preds)}')
     print(f'Precision: {precision_score(labels, preds)}')
     print(f'Recall: {recall_score(labels, preds)}')
+    print(Counter(rule_number_used))
 
+# mixtral_verifier('rule/rule_gpt4_both.txt')
+EXPRESSION_LIST = [
+    "certain", "almost certain", "highly likely", "very good chance",
+    "we believe", "probably", "probable", "likely", "better than even",
+    "about even", "probably not", "we doubt", "unlikely", "little chance",
+    "chances are slight", "improbable", "highly unlikely", "almost no chance",
+    "impossible"
+]
 
-# mixtral_verifier('SHTech/object_data/train_100_0_cogvlm.txt','rule/rule_gpt4.txt')
-
-def mixtral_deduct(desc_path_n, desc_path_a,  rule_path):
-    # model_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
-    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-    model = AutoModelForCausalLM.from_pretrained(model_id, low_cpu_mem_usage=True, torch_dtype=torch.float16, device_map ='auto').eval()
-
-    desc_paths = [desc_path_n,desc_path_a]
-    answers = []
+def mixtral_deduct(desc_path, rule_path, tokenizer, model, labels):
     preds = []
-    labels = [0]*50 + [1]*50
-
-    filename = f"results/{rule_path.split('/')[1].split('.')[0]}_mistral7B_{desc_path_n.split('/')[-1].replace('test_50_0_','')}"
-    if os.path.exists(filename):
-        os.remove(filename)
-        print(f"File {filename} has been deleted.")
-    else:
-        print(f"The file {filename} does not exist.")
-
-    count = 0
-    for desc_path in desc_paths:
-        objects = read_line(desc_path)
-        rule = open(rule_path, "r").read()
-
-        for obj in objects:
-            count+=1
-            text = f'''You are monitoring the campus, you task is to detect the anomaly based on the given rules. The rules are: 
-                        {rule}. 
-                        Now you are given {obj}. Is it normal or anomaly? Answer Anomaly if anomaly exists. Otherwise answer Normal. Think step by step. 
-                        
-                        Answer:'''
-            # text = f'''You are monitoring the campus, you task is to detect the anomaly based on the given rules. The rules are:
-            # {rule}.
-            # Now you are given {obj}. Is it normal or anomaly? Answer Anomaly even if only one Anomaly exists. Otherwise answer Normal. Think step by step.
-            #
-            # Answer:'''
-            inputs = tokenizer(text, return_tensors="pt").to(device)
-            outputs = model.generate(**inputs, max_new_tokens=1000)
-            answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
-            preds.append(post_process(answer))
-            answers.append(answer)
-            print(f'-----------------------------------------------------{count}-----------------------------------------------------------------------')
-            print(answer)
-            with open(filename, 'a') as file:
-                for answer in answers:
-                    file.write(f'-----------------------------------------------------{count}-----------------------------------------------------------------------' + '\n')
-                    file.write(answer + '\n')
-    scores = [0.9 if x == 1 else 0.1 if x == 0 else 0.5 for x in preds]
-    print(preds)
+    probs = []
+    scores = []
+    saved_result = pd.DataFrame(columns=['answer', 'label', 'pred', 'probability', 'score'])
+    rule = open(rule_path, "r").read()
+    objects_list = read_line(desc_path)
+    for index, obj in enumerate(objects_list):
+        text = f'''You will be given an description of scene, you task is to detect the anomaly based on the rules. The rules are:
+                    {rule}\n\n
+                    First, if human activity present, which rule is matching? List the rule category, e.g., normal or anomaly, with number.\n\n
+                    Second, if non-human object present, which rule is matching? List the rule category, e.g., normal or anomaly, with number.\n\n
+                    Third, are the human activities or non-human objects anomaly? Answer: anomaly, if ANY anomaly rule (even if only one, no matter human activities or non-human objects) matches, otherwise answer: normal.\n\n
+                    Fourth, describe how likely it is that your best answer is correct as one of the following expressions: ${EXPRESSION_LIST}. \nConfidence: <description of confidence, without any extra commentary whatsoever; just a short phrase!>\n\n
+                    Now you are given the scene {obj}, think step by step.'''
+        inputs = tokenizer(text, return_tensors="pt").to(device)
+        outputs = model.generate(**inputs, max_new_tokens=4000)
+        answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        print_out = str(obj)+find_text_after(answer, 'think step by step.')
+        pred = post_process(print_out)
+        prob = get_anomaly_score(print_out)
+        preds.append(pred)
+        probs.append(prob)
+        if pred == 1:
+            score = prob
+        else:
+            score = float("{:.2f}".format(1-prob))
+        scores.append(score)
+        print(f'----------------------------------------------------------------------------------------------------------------------------')
+        print(pred)
+        print(score)
+        print(print_out)
+        saved_result = saved_result._append({'answer': print_out,
+                    'label': labels[index],
+                    'pred': pred,
+                    'probability': prob,
+                    'score': score},
+                     ignore_index=True)
+    saved_result.to_csv(f"results/SH/{desc_path.split('/')[-1].split('.')[0]}.csv", index=False)
+    print(f'Frequency of Probabilities: {Counter(probs)}')
+    print(f'Frequency of Anomaly scores: {Counter(scores)}')
     print(f'ACC: {accuracy_score(labels, preds)}')
     print(f'Precision: {precision_score(labels, preds)}')
     print(f'Recall: {recall_score(labels, preds)}')
     print(f'AUC: {roc_auc_score(labels, scores)}')
+    return preds, scores, probs
 
-mixtral_deduct('SHTech/object_data/test_50_0_cogvlm.txt', 'SHTech/object_data/test_50_1_cogvlm.txt', 'rule/rule_gpt4_revised.txt')

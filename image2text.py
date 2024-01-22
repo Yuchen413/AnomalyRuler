@@ -7,9 +7,9 @@ from utils import *
 # from LLaVA.llava.eval.run_llava import *
 # from LLaVA.llava.mm_utils import get_model_name_from_path
 
-np.random.seed(2024)
-torch.manual_seed(2024)
-torch.cuda.memory_summary(device=None, abbreviated=False)
+# np.random.seed(2024)
+# torch.manual_seed(2024)
+# torch.cuda.memory_summary(device=None, abbreviated=False)
 
 import gc
 
@@ -232,20 +232,80 @@ def cogvlm(model, image_paths, mode = 'chat', root_path = None, model_path = 'lm
             description.append(tokenizer.decode(outputs[0], skip_special_tokens=True))
             print(tokenizer.decode(outputs[0], skip_special_tokens=True))
 
-    # combined_description = [f"{x}, {y}" for x, y in zip(description[0:len(batch_images)],description[len(batch_images):])]
+    # combined_description = [f"{x}, {y}" for x, y in zip(test_frame_description[0:len(batch_images)],test_frame_description[len(batch_images):])]
     # print(len(combined_description))
 
     # with open(f'{image_path.split("/")[0]}/object_data/{image_path.split("/")[1]}_cogvlm.txt',
     #           'w') as file:
-    #     for inner_list in description:
+    #     for inner_list in test_frame_description:
     #         file.write(str(inner_list) + '\n')
 
             # file.write(re.sub(r'[\d]+', '', inner_list) + '\n') # remove numbers
-    # with open(f'{image_path.split("/")[0]}/object_data/{image_path.split("/")[1]}_cogvlm_env.txt',
-    #           'w') as file:
-    #     for inner_list in description_env:
-    #         file.write(inner_list + '\n')
+
     return description
+
+def continue_frame_SH():
+    file_path = 'SHTech/test.csv'  # Replace with your actual file path
+    df = pd.read_csv(file_path)
+
+    # Define the position and length of the number segment
+    # For example, if the number segment starts at character 11 and is of length 7 (like 'NN_NNNN'), set the following:
+    start_position = 12
+    segment_length = 7
+
+    # Extract all unique number segments from the paths
+    unique_segments = df.iloc[:, 0].apply(lambda x: x[start_position:start_position + segment_length]).unique()
+    # selected_segment =  np.random.choice(unique_segments, 1, replace=False)
+    for i in unique_segments:
+        filtered_df = df[df.iloc[:, 0].apply(lambda x: x[start_position:start_position+segment_length] == i)]
+        # paths = filtered_df.iloc[:, 0].tolist()
+        filtered_df.to_csv(f'SHTech/test_frame/test_{i}.csv', index=False)
+
+
+# continue_frame_SH()
+# paths = continue_frame_SH()
+# print(paths)
+
+def get_description_frame(root_path):
+    cog_model = AutoModelForCausalLM.from_pretrained(
+        'THUDM/cogvlm-chat-hf',
+        torch_dtype=torch.bfloat16,
+        low_cpu_mem_usage=True,
+        device_map='auto',
+        trust_remote_code=True
+    ).eval()
+    all_video_csv_paths = get_all_paths(root_path)
+    for video_csv_path in all_video_csv_paths:
+        name = video_csv_path.split('/')[-1].split('.')[0]
+        print(name)
+        df = pd.read_csv(video_csv_path)
+        img_paths_per_video = df.iloc[:, 0].tolist()
+        descriptions_per_video = cogvlm(model=cog_model, mode='chat', image_paths=img_paths_per_video)
+        with open(f'SHTech/test_frame_description/{name}.txt', 'w') as file:
+            for inner_list in descriptions_per_video:
+                file.write(inner_list + '\n')
+
+# get_description_frame('SHTech/test_frame')
+
+
+
+
+
+
+
+
+
+
+# print(f'ACC: {accuracy_score(labels, preds)}')
+# print(f'Precision: {precision_score(labels, preds)}')
+# print(f'Recall: {recall_score(labels, preds)}')
+# print(f'ACC: {accuracy_score(labels, s_preds)}')
+# print(f'Precision: {precision_score(labels, s_preds)}')
+# print(f'Recall: {recall_score(labels, s_preds)}')
+# print(f'AUC: {roc_auc_score(labels, scores)}')
+
+# print("\nSentence labels:\n", preds)
+# print("\nSmooth Sentence labels:\n", s_preds)
 
 # owlvit(model_path = "google/owlvit-large-patch14", image_path = "SHTech/train_5_0")
 # blip('Salesforce/blip2-flan-t5-xl', "SHTech/test_50_0")

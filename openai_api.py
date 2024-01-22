@@ -104,7 +104,7 @@ def llm_deduction(txt_path, rule, rule_name):
                 model=model,
                 messages=[
                     {"role": "system", "content": f"You are monitoring the campus, you task is to detect the anomaly based on the given rules. The rules are: {rule}"},
-                    {"role": "user", "content": "What are in the description, as detail as possible? Reply following the template."},
+                    {"role": "user", "content": "What are in the test_frame_description_local, as detail as possible? Reply following the template."},
                     {"role": "assistant", "content": '''Image Summary:
                                                         Object: People, a group of people, skateboarder
                                                         Action: Walking, standing, riding'''},
@@ -115,7 +115,7 @@ def llm_deduction(txt_path, rule, rule_name):
                                                         [skateboarder, riding] = Anomaly, because it is unusually to see a skateboarder to be riding on a road.
                                                         
                                                         Overall, its Anomaly. Since there is anomaly above. '''},
-                    {"role": "user", "content": f"Now you are given {item}. What is in the description? Reply following the template. Is it normal or anomaly? Reply following the template."},
+                    {"role": "user", "content": f"Now you are given {item}. What is in the test_frame_description_local? Reply following the template. Is it normal or anomaly? Reply following the template."},
                 ]
             )
             print(response.choices[0].message.content)
@@ -333,42 +333,7 @@ def gpt4v_deduction(rule_name, prompt, image_root = "SHTech/test_50_0"):
     #     print(count_1)
     #     print(f'Acc:{count_1 / len(results)}')
 
-def llm_induction_1(txt_path):
-    client = OpenAI(api_key="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")
-    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
-    model = model_list[3]
-    objects = read_line(txt_path)
-    # objects = read_txt_to_list(txt_path)
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system",
-             "content": f'''As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is derive rules for detect abnormal activities or object.'''},
-            {"role": "user",
-             "content": "What are in the description? Reply following the template."},
-            {"role": "assistant", "content": '''Image Summary:
-                                                Object: People, a group of people
-                                                Action: Walking, standing
-                                                Environment: Park, walkway, urban area'''},
-            # {"role": "user", "content": "Please first summarize the activities, and count its frequency and list them from high to low:"},
-            # {"role": "assistant", "content": '''**Activities:
-            #                     1. [walking]: 105,'''},
-            {"role": "user", "content": "Based on the assumption that the given description are normal, "
-                                        "Please derive rules for normal using terms as short as possible, and reply following the template"},
-            {"role": "assistant", "content": '''**Rules for Normal:
-                                                1. '''},
-
-            {"role": "user",
-             "content": f"Now you are given {objects}. What are the rules you got from the observation? Reply following the template."},
-        ]
-    )
-    print(response.choices[0].message.content)
-
-
-    return response.choices[0].message.content
-
-
-def llm_rule_correction(objects):
+def llm_induction_1(objects):
     client = OpenAI(api_key="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")
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
     model = model_list[3]
@@ -378,24 +343,60 @@ def llm_rule_correction(objects):
         model=model,
         messages=[
             {"role": "system",
-             "content": f'''As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is correct and improve rules for detect abnormal activities.'''},
-            # {"role": "user",
-            #  "content": "What are in the description? Reply following the template."},
-            # {"role": "assistant", "content": '''Image Summary:
-            #                                     Object: People, a group of people
-            #                                     Action: Walking, standing
-            #                                     Environment: Park, walkway, urban area'''},
-            {"role": "user", "content": "You are given the rules and the wrong detection results based on these rules, the correct detection results should be normal."
-                                        "Please adjusting the existing rules, and reply following the template"},
+             "content": f'''As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is derive rules for detect abnormal activities or object.'''},
+            {"role": "user", "content": "Based on the assumption that the given test_frame_description_local are normal, "
+                                        "Please derive rules for normal considering the specific and concrete activities or objects."},
+            {"role": "assistant", "content": '''
+                                        **Rules for Normal Human Activities:
+                                        1.
+                                        **Rules for Normal Non-Human Objects:
+                                        1.
+                                        '''},
+            {"role": "user",
+             "content": "Compared with the above normal rules, can you provide potential anomaly rules? Please consider the specific and concrete activities or objects compared with normal ones."},
+            {"role": "assistant", "content": '''**Rules for Anomaly Human Activities:
+                                        1. 
+                                        **Rules for Anomaly Non-Human Objects:
+                                        1.
+                                        '''},
+
+            {"role": "user",
+             "content": f"Now you are given {objects}. What are the Normal and Anomaly rules you got? Think step by step. Reply following the above format, aim for concrete activities/objects rather than being too abstract. List them using short terms, not an entire sentence."},
+        ]
+    )
+    print('=====> Rule Generation:')
+    print(response.choices[0].message.content)
+    return response.choices[0].message.content
+
+
+def llm_rule_correction(objects, n):
+    client = OpenAI(api_key="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")
+    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
+    model = model_list[3]
+    # objects = read_line(txt_path)
+    # objects = read_txt_to_list(txt_path)
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system",
+             "content": f'''As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is to organize rules for detect abnormal activities and objeacts.'''},
+            {"role": "user", "content": f"You are given {n} independent sets of rules for Normal and Anomaly. "
+                                        f"For the organized normal Rules, list the given normal rules with high-frenquency elements"
+                                        f"For the organized anomaly Rules, list all the given anomaly rules"},
             {"role": "assistant", "content": '''**Rules for Normal Human Activities:
                                                 1. 
                                                 **Rules for Normal Non-Human Objects:
                                                 1.
+                                                **Rules for Anomaly Human Activities:
+                                                1. 
+                                                **Rules for Anomaly Non-Human Objects:
+                                                1.
                                                 '''},
             {"role": "user",
-             "content": f"Now you are given {objects}. Can you improve the rules? Please only output the rules."},
+             "content": f"Now you are given {n} independent sets of rules as the sublists of {objects}. What are the Normal and Anomaly rules do you get? Think step by step, reply following the above format, aim for concrete activities/objects rather than being too abstract."},
         ]
     )
+    print('=====> Organized Rules:')
     print(response.choices[0].message.content)
     return response.choices[0].message.content
 
@@ -588,8 +589,9 @@ rule_v7_noenv = '''
 # gpt4v_deduction(rule_name='rule_v5_enhanced',prompt=rule_v5_enhanced, image_root="SHTech/test_50_1")
 # rule_stage_1 = llm_induction_1('SHTech/object_data/train_5_0_vicuna-7b-v1.5.txt')
 # rule_stage_2 = llm_induction_2(rule_stage_1)
-rule_stage_1 = llm_induction_1('SHTech/object_data/train_5_0_cogvlm.txt')
-rule_stage_2 = llm_induction_2(rule_stage_1)
+
+# rule_stage_1 = llm_induction_1('SHTech/object_data/train_5_0_cogvlm.txt')
+# rule_stage_2 = llm_induction_2(rule_stage_1)
 
 # llm_rule_correction('/home/yyang/PycharmProjects/anomaly_detection/rule/rule_gpt4_wrong.txt')
 

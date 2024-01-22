@@ -11,8 +11,15 @@ import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import wordnet
 from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, recall_score
-
+import ast
 np.random.seed(2024)
+
+
+def string_to_list(string):
+    # Remove square brackets and split the string by comma
+    elements = string.strip('[]').split(',')
+    # Convert each element to int or float, based on your data
+    return [int(elem) if elem.isdigit() else float(elem) for elem in elements]
 
 def split_list(data, size):
     # Splits 'data' into sublists of length 'size'
@@ -127,21 +134,88 @@ def read_line(path = 'SHTech/test_owlvit.txt'):
         lines = [line.strip().split('\n') for line in file]
     return lines
 
+#
+# def post_process(text):
+#     key_phrases = ['Normal', 'Anomaly']
+#     answer_index = text.find('Answer:')
+#     if answer_index != -1:
+#         # Extract the substring starting from 'Answer:'
+#         substring = text[answer_index + len('Answer:'):]
+#         # Split the substring into words and return the first one that contains a key phrase
+#         words = substring.split('.')[0]
+#         for phrase in key_phrases:
+#             if phrase in words:
+#                 if phrase=='Anomaly' : return 1
+#                 if phrase=='Normal': return 0
+#     print("Neither 'Normal' nor 'Anomaly' found in the specified locations.")
+#     return -1
+
+def find_substring_indices(main_string, substring):
+    indices = []
+    index = main_string.find(substring)
+    while index != -1:
+        indices.append(index)
+        index = main_string.find(substring, index + 1)
+    return indices
 
 def post_process(text):
-    key_phrases = ['Normal', 'Anomaly']
-    answer_index = text.find('Answer:')
-    if answer_index != -1:
-        # Extract the substring starting from 'Answer:'
-        substring = text[answer_index + len('Answer:'):]
-        # Split the substring into words and return the first one that contains a key phrase
-        words = substring.split('.')[0]
-        for phrase in key_phrases:
-            if phrase in words:
-                if phrase=='Anomaly' : return 1
-                if phrase=='Normal': return 0
-    print("Neither 'Normal' nor 'Anomaly' found in the specified locations.")
-    return -1
+    key_phrases = ['normal', 'anomaly', 'anomalous']
+    patterns = [':', 'category', 'answer', 'answer is', 'guess']
+    text = text.lower()
+
+    count = 0
+    for pattern in patterns:
+        answer_indices = find_substring_indices(text, pattern)
+        for answer_index in answer_indices:
+            # Extract the substring starting from the pattern
+            substring = text[answer_index + len(pattern):]
+            # Split the substring into words and return the first one that contains a key phrase
+            # words = substring.split('.')[0]
+            words = substring.split('\n')[0] if substring.find('\n') < substring.find('.') or substring.find('.') == -1 else substring.split('.')[0]
+            # print(words)
+            if 'are the human activities or non-human objects anomaly or normal?' not in words:
+                for phrase in key_phrases:
+                    if phrase in words:
+                        if phrase in ['anomaly', 'anomalous']:
+                            count+=1
+    if count>0:
+        return 1
+    else: return 0
+
+
+def get_anomaly_score(text):
+    text = text.lower()
+    phrases = [
+        "almost certain", "certain", "probable", "probably not", "highly unlikely",
+        "highly likely", "very good chance", "we believe", "better than even",
+        "about even", "we doubt", "little chance", "chances are slight",
+        "improbable", "almost no chance", "impossible", "probably",
+        "unlikely", "likely"
+    ]
+    scores = [
+        0.95, 1, 0.7, 0.25, 0.05, 0.9, 0.8, 0.75, 0.6, 0.5, 0.2, 0.1, 0.1,
+        0.1, 0.02, 0, 0.7, 0.2, 0.7
+    ]
+    phrase_to_score = dict(zip(phrases, scores))
+
+    for phrase in phrases:
+        if phrase in text:
+            return phrase_to_score[phrase]
+
+    return 0.8
+
+
+def find_text_after(whole_text, search_phrase):
+    # Find the index where the phrase ends
+    start_index = whole_text.find(search_phrase)
+    if start_index == -1:
+        # Phrase not found in the text
+        return None
+    else:
+        # Add the length of the search phrase to the start index
+        start_index += len(search_phrase)
+        # Return the substring from this index to the end of the text
+        return whole_text[start_index:]
 
 def read_and_process_file(file_path = 'SHTech/object_data/train_100_0_vicuna-7b-v1.5_act+env.txt'):
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -165,9 +239,6 @@ def read_and_process_file(file_path = 'SHTech/object_data/train_100_0_vicuna-7b-
             output_file.write(line.strip() + '\n')
 
     return unique_content
-
-
-
 
 
 def get_wordnet_pos(treebank_tag):
