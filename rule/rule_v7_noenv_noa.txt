@@ -1,9 +1,0 @@
-**Rules for Normal:
-1. [people, walking] = Normal
-2. [people, standing] = Normal
-3. [a group of people, walking] = Normal
-4. [person, walking, carrying object] = Normal
-5. [person, sitting] = Normal
-6. [person, talking, on cell phone] = Normal
-7. No human-related actions or behaviors =  Normal
-8. ['0'] = Normal, since ['0'] means No People.

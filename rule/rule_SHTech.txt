@@ -1,16 +1,16 @@
 **Anomaly Human Activities:**
 1. Running or jumping
 2. Using any non-walking movement such as riding a bicycle or scooter, skateboarding
-3. Moving with usually speed such as in hurry
+3. Moving with usual speed such as very fast or in hurry
 4. Person lying or bending down on the ground
-5. Walking with usually item such as trolley, cart or large luggage
-6. Aggressive or unusual movements such as fighting
-7. Loitering around trash bin
-8. Climbing on trees or into manhole/utility access points
-9. Tampering with manhole covers
-10. Loitering suspiciously around the trash bin
-11. Engaging in physical altercation
-12. Lingering without a clear purpose near a sensitive area
+5. Aggressive or unusual movements such as fighting or pushing
+6. Loitering around trash bin
+7. Climbing on trees or into manhole/utility access points
+8. Tampering with manhole covers
+9. Loitering suspiciously around the trash bin
+10. Engaging in physical altercation
+11. Lingering without a clear purpose near a sensitive area
+12. Falling unexpectedly
 
 **Anomaly Non-Human Objects:**
 1. Missing, removed, or ajar manhole covers

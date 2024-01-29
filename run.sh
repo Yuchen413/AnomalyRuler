@@ -1,0 +1,1 @@
+python main.py --data='avenue' --deduct

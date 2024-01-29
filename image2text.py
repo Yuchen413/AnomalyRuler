@@ -179,26 +179,8 @@ def owlvit(model_path = "google/owlvit-large-patch14", image_path = "SHTech/test
             file.write(','.join(map(str, inner_list)) + '\n')
 
 def cogvlm(model, image_paths, mode = 'chat', root_path = None, model_path = 'lmsys/vicuna-7b-v1.5'):
-    from nltk.tokenize import word_tokenize
-    from nltk.corpus import wordnet
-    # nltk.download('punkt')
-    # nltk.download('averaged_perceptron_tagger')
-
     tokenizer = LlamaTokenizer.from_pretrained(model_path)
-
-    # model = AutoModelForCausalLM.from_pretrained(
-    #     'THUDM/cogvlm-chat-hf',
-    #     torch_dtype=torch.bfloat16,
-    #     low_cpu_mem_usage=True,
-    #     device_map='auto',
-    #     trust_remote_code=True
-    # ).eval()
-
     query= 'How many people are in the image and what is each of them doing? What are in the images other than people? Think step by step'
-    # query_env = 'What are in the images other than people? Think step by step'
-    # queries = [query_act, query_env]
-    # query = 'How many people are in the images? What is each of them doing? Think step by step'
-
     if root_path != None:
         image_paths = sorted(get_all_paths(root_path))
 
@@ -225,26 +207,12 @@ def cogvlm(model, image_paths, mode = 'chat', root_path = None, model_path = 'lm
         with torch.no_grad():
             outputs = model.generate(**inputs, **gen_kwargs)
             outputs = outputs[:, inputs['input_ids'].shape[1]:]
-            # if count == 0:
-            #     description_act.append(read_and_process_file(tokenizer.decode(outputs[0], skip_special_tokens=True)))
-            #     print(read_and_process_file(tokenizer.decode(outputs[0], skip_special_tokens=True)))
-            # else:
             description.append(tokenizer.decode(outputs[0], skip_special_tokens=True))
             print(tokenizer.decode(outputs[0], skip_special_tokens=True))
 
-    # combined_description = [f"{x}, {y}" for x, y in zip(test_frame_description[0:len(batch_images)],test_frame_description[len(batch_images):])]
-    # print(len(combined_description))
-
-    # with open(f'{image_path.split("/")[0]}/object_data/{image_path.split("/")[1]}_cogvlm.txt',
-    #           'w') as file:
-    #     for inner_list in test_frame_description:
-    #         file.write(str(inner_list) + '\n')
-
-            # file.write(re.sub(r'[\d]+', '', inner_list) + '\n') # remove numbers
-
     return description
 
-def continue_frame_SH(data_root_name):
+def continue_frame(data_root_name):
     file_path = f'{data_root_name}/test.csv'  # Replace with your actual file path
     df = pd.read_csv(file_path)
     image_path_sample = df['image_path'][0]
@@ -252,16 +220,15 @@ def continue_frame_SH(data_root_name):
     second_last_slash_pos = image_path_sample.rfind('/', 0, last_slash_pos)
 
     # Extract all unique number segments from the paths
-    unique_segments = df.iloc[:, 0].apply(lambda x: x[second_last_slash_pos+1:last_slash_pos]).unique()
+    unique_segments = df.iloc[:, 0].apply(lambda x: x[second_last_slash_pos+1:last_slash_pos].split('/')[0]).unique()
+    print(unique_segments)
     if not os.path.exists(f'{data_root_name}/test_frame'):
         os.makedirs(f'{data_root_name}/test_frame')
     for i in unique_segments:
-        filtered_df = df[df.iloc[:, 0].apply(lambda x: x[second_last_slash_pos+1:last_slash_pos]== i)]
+        filtered_df = df[df.iloc[:, 0].apply(lambda x: x[second_last_slash_pos+1:last_slash_pos].split('/')[0]== i)]
         filtered_df.to_csv(f'{data_root_name}/test_frame/test_{i}.csv', index=False)
 
-
-# continue_frame_SH('ped2')
-
+# continue_frame('UBNormal')
 def get_description_frame(data_root_name):
     cog_model = AutoModelForCausalLM.from_pretrained(
         'THUDM/cogvlm-chat-hf',
@@ -271,7 +238,8 @@ def get_description_frame(data_root_name):
         trust_remote_code=True
     ).eval()
     all_video_csv_paths = get_all_paths(f'{data_root_name}/test_frame')
-    for video_csv_path in all_video_csv_paths:
+    print(all_video_csv_paths)
+    for video_csv_path in all_video_csv_paths[31:]:   #:30 31:(test_abnormal_scene_4_scenario_7)
         name = video_csv_path.split('/')[-1].split('.')[0]
         print(name)
         df = pd.read_csv(video_csv_path)
@@ -283,38 +251,8 @@ def get_description_frame(data_root_name):
             for inner_list in descriptions_per_video:
                 file.write(inner_list + '\n')
 
-get_description_frame('ped2')
+# get_description_frame('UBNormal')
 
 
 
 
-
-
-
-
-
-
-# print(f'ACC: {accuracy_score(labels, preds)}')
-# print(f'Precision: {precision_score(labels, preds)}')
-# print(f'Recall: {recall_score(labels, preds)}')
-# print(f'ACC: {accuracy_score(labels, s_preds)}')
-# print(f'Precision: {precision_score(labels, s_preds)}')
-# print(f'Recall: {recall_score(labels, s_preds)}')
-# print(f'AUC: {roc_auc_score(labels, scores)}')
-
-# print("\nSentence labels:\n", preds)
-# print("\nSmooth Sentence labels:\n", s_preds)
-
-# owlvit(model_path = "google/owlvit-large-patch14", image_path = "SHTech/train_5_0")
-# blip('Salesforce/blip2-flan-t5-xl', "SHTech/test_50_0")
-# llava(model_path = 'liuhaotian/llava-v1.5-13b', image_path = 'SHTech/test_50_1', crop = False)
-
-# cog_model = AutoModelForCausalLM.from_pretrained(
-#     'THUDM/cogvlm-chat-hf',
-#     torch_dtype=torch.bfloat16,
-#     low_cpu_mem_usage=True,
-#     device_map='auto',
-#     trust_remote_code=True
-# ).eval()
-#
-# cogvlm(model = cog_model, mode='vqa', root_path= 'SHTech/test_50_0', image_paths=None)

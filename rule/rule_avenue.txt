@@ -1,0 +1,50 @@
+**Anomaly Human Activities:**
+1. Running or rushing abruptly
+2. Moving in a manner not consistent with the normal flow of pedestrian traffic
+2. Loitering with unusual behavior or in a restricted area
+3. Engaging in a physical altercation
+4. Falling or lying down unexpectedly
+5. Displaying distress or seeking help
+6. Riding a bicycle or scooter, skateboarding
+7. Lying or bending on the ground
+8. Jumping
+9. Climbing on railings or non-designated structures
+10. Loitering for extended periods without an apparent reason
+
+**Anomaly Non-Human Objects:**
+1. Unattended bags or packages in high-traffic or sensitive areas
+2. Objects in locations where they obstruct pathways or exits
+3. Vandalism or damage to objects such as signs or structures
+4. Signs with irregular or suspicious messaging
+5. Abnormally large or small trees in comparison to the typical landscape
+6. Moving vehicles in pedestrian zones
+7. Malfunctioning signs or clocks (indicating incorrect information)
+8. Graffiti on sign/wall (vandalism not common to the area)
+9. Fallen tree or branches (obstructions not typical)
+10. Obstacles blocking stairs or pathways creating safety hazards
+
+**Normal Human Activities:**
+1. Walking toward stairs
+2. Walking away from stairs
+3. Walking toward the entrance
+4. Standing near door
+5. Exiting door
+6. Walking in the background
+7. Walking up/down stairs
+8. Standing and looking at phone or other points of interest
+9. Talking to another person
+10. Taking a photo
+
+**Normal Non-Human Objects:**
+1. Signs (typical urban environment feature, standard for information)
+2. Trees (common landscape feature)
+3. Structure with lights (common urban lighting)
+4. Pillars (expected in urban infrastructure)
+5. Staircase (common in multi-level environments)
+6. Pathway (expected feature for pedestrian traffic)
+7. Trash bin (expected in public spaces for waste disposal)
+8. Clock (when indicating time, standard object)
+9. Brick pathway (as a variation of the pathway)
+10. Scattered leaves on ground (natural element)
+
+

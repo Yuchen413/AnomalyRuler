@@ -11,15 +11,8 @@ import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import wordnet
 from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, recall_score
-import ast
+
 np.random.seed(2024)
-
-
-def string_to_list(string):
-    # Remove square brackets and split the string by comma
-    elements = string.strip('[]').split(',')
-    # Convert each element to int or float, based on your data
-    return [int(elem) if elem.isdigit() else float(elem) for elem in elements]
 
 def split_list(data, size):
     # Splits 'data' into sublists of length 'size'
@@ -96,6 +89,7 @@ def random_select_data(path = 'SHTech/train.csv', num = 5, label = 0):
         destination_path = os.path.join(destination_directory, image_filename)
         shutil.copy2(image_path, destination_path)
 
+random_select_data()
 def random_select_data_without_copy(path = 'SHTech/train.csv', num = 5, label = 0):
     df = pd.read_csv(path)
     image_file_paths = list(df.loc[df['label'] == label, 'image_path'].values)

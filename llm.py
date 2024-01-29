@@ -220,7 +220,7 @@ EXPRESSION_LIST = [
     "impossible"
 ]
 
-def mixtral_deduct(desc_path, rule_path, tokenizer, model, labels):
+def mixtral_deduct(data, desc_path, rule_path, tokenizer, model, labels):
     preds = []
     probs = []
     scores = []
@@ -258,7 +258,7 @@ def mixtral_deduct(desc_path, rule_path, tokenizer, model, labels):
                     'probability': prob,
                     'score': score},
                      ignore_index=True)
-    saved_result.to_csv(f"results/SH/{desc_path.split('/')[-1].split('.')[0]}.csv", index=False)
+    saved_result.to_csv(f"results/{data}/{desc_path.split('/')[-1].split('.')[0]}.csv", index=False)
     print(f'Frequency of Probabilities: {Counter(probs)}')
     print(f'Frequency of Anomaly scores: {Counter(scores)}')
     print(f'ACC: {accuracy_score(labels, preds)}')

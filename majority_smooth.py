@@ -29,13 +29,17 @@ def clsuter_keyword(text_lines):
     "scooter",
     "vehicles",
     "vans",
+    "accident",
     "running",
+    "jumping",
     "riding",
     "skateboarding",
     "scooting",
     "lying",
+    "falling",
     "bending",
     "fighting",
+    "pushing",
     "loitering",
     "climbing",
     "tampering",
@@ -153,6 +157,8 @@ def evaluate(file_path, labels, output_file_path, save_modified):
     # Initial labels using keyword in rules
     text_lines = read_file(file_path)
     preds, keyword_list = clsuter_keyword(text_lines)
+    print(np.asarray(labels))
+    print(np.asarray(preds))
 
     # First-time EMA to smooth the preds with a more sensitive way
     ema_smoothed_data = pd.Series(preds).ewm(span=5, adjust=True).mean()
@@ -162,8 +168,11 @@ def evaluate(file_path, labels, output_file_path, save_modified):
     # Then majority_smooth to adjust the general trends
     s_preds = majority_smooth(ema_preds, window_size=20, edge_region_size=None)
 
+    if threshold ==0:
+        threshold += 0.00001
     # Second-time EMA to get the auc score
     scores = pd.Series(s_preds).ewm(alpha = threshold, adjust=True).mean()
+    # scores = pd.Series(s_preds).ewm(span=5, adjust=True).mean()
 
     if save_modified == True:
         modified_texts = modify_text(preds, s_preds, keyword_list, text_lines, window_size=20)
@@ -181,19 +190,20 @@ def evaluate(file_path, labels, output_file_path, save_modified):
 
 
 def main():
-    entries = os.listdir('SHTech/test_frame_description')
+    data_name = 'ped2'
+    entries = os.listdir(f'{data_name}/test_frame_description')
     all_preds = []
     all_labels = []
     all_spreds = []
     all_scores = []
     for item in entries:
         name = item.split('.')[0]
-        input_file_path = f'SHTech/test_frame_description/{name}.txt'  # Path to your input text file
-        output_file_path = f'SHTech/modified_test_frame_description/{name}.txt'  # Path for the new output text file
+        input_file_path = f'{data_name}/test_frame_description/{name}.txt'  # Path to your input text file
+        output_file_path = f'{data_name}/modified_test_frame_description/{name}.txt'  # Path for the new output text file
         if not os.path.exists(os.path.dirname(output_file_path)):
             os.makedirs(os.path.dirname(output_file_path))
-        labels = pd.read_csv(f'SHTech/test_frame/{name}.csv').iloc[:, 1].tolist()
-        preds, s_preds, scores = evaluate(input_file_path, labels, output_file_path, save_modified=True)
+        labels = pd.read_csv(f'{data_name}/test_frame/{name}.csv').iloc[:, 1].tolist()
+        preds, s_preds, scores = evaluate(input_file_path, labels, output_file_path, save_modified=False)
         all_labels += labels
         all_preds += preds
         all_spreds += s_preds

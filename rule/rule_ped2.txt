@@ -1,0 +1,27 @@
+**Anomaly Human Activities:**
+1. Running or jumping
+2. Standing still for extended periods or loitering if unusual for the context
+3. Using any non-walking movement such as riding a bicycle or scooter, skateboarding
+4. Walking in restricted areas
+5. Carrying large or suspicious objects that deviate from bags or backpacks
+6. Groups forming that are uncommon for the area
+7. Engaging in aggressive behavior
+
+**Anomaly Non-Human Objects:**
+1. Unattended bags or objects suggesting a safety hazard
+2. Vehicles on pathways where they are not permitted
+3. Damage or vandalism to structures such as lampposts, buildings, or trees
+4. Objects blocking pathways which could indicate accidents or obstructions
+5. Any new, unexpected structure or object that isn't part of the established normal environment
+
+**Normal Human Activities:**
+1. Walking individually or with others
+2. Carrying bags or backpacks
+3. Sitting
+4. Standing
+
+**Normal Non-Human Objects:**
+1. Presence of lampposts
+2. Presence of buildings
+3. Presence of trees
+4. Presence of pathways

@@ -1,7 +1,0 @@
-[people, walking, street/sidewalk] = Normal
-[person, walking, carrying object] = Normal
-[person, sitting, on bench] = Normal
-[people, walking, in park] = Normal
-[person, walking, in waterway] = Normal
-[person, talking, on cell phone] = Normal
-[person, walking, near building] = Normal

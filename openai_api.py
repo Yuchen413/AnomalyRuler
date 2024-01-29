@@ -369,7 +369,7 @@ def llm_induction_1(objects):
     return response.choices[0].message.content
 
 
-def llm_rule_correction(objects, n):
+def llm_rule_correction(objects, n, data_full_name):
     client = OpenAI(api_key="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")
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
     model = model_list[3]
@@ -379,7 +379,7 @@ def llm_rule_correction(objects, n):
         model=model,
         messages=[
             {"role": "system",
-             "content": f'''As a surveillance monitor for urban safety using the ShanghaiTech dataset, my job is to organize rules for detect abnormal activities and objeacts.'''},
+             "content": f'''As a surveillance monitor for urban safety using the {data_full_name} dataset, my job is to organize rules for detect abnormal activities and objeacts.'''},
             {"role": "user", "content": f"You are given {n} independent sets of rules for Normal and Anomaly. "
                                         f"For the organized normal Rules, list the given normal rules with high-frenquency elements"
                                         f"For the organized anomaly Rules, list all the given anomaly rules"},
