@@ -5,21 +5,25 @@ from transformers import CLIPProcessor, CLIPModel
 import random
 import torch
 import numpy as np
-import cv2
-import glob
-import os
 import scipy.io as scio
 from torch.utils.data import Dataset
 import pandas as pd
+import cv2
+import os
+import os
+import shutil
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 for i in range(torch.cuda.device_count()):
     print(f"Device {i}: {torch.cuda.get_device_name(i)}")
 
-import os
-import shutil
 
-class VideoOrganizer:
+class UBNormal_VideoOrganizer:
+    '''
+    Usage:
+    organizer = UBNormal_VideoOrganizer('data', 'data/train', 'data/test/normal', 'data/test/abnormal')
+    organizer.organize_videos('normal_training_video_names.txt', 'normal_validation_video_names.txt', 'abnormal_validation_video_names.txt')
+    '''
     def __init__(self, data_folder, train_folder, test_normal_folder, test_abnormal_folder):
         self.data_folder = data_folder
         self.train_folder = train_folder
@@ -58,15 +62,13 @@ class VideoOrganizer:
         self.copy_videos(abnormal_test_videos, self.test_abnormal_folder)
 
 
-
-# organizer = VideoOrganizer('data', 'data/train', 'data/test/normal', 'data/test/abnormal')
-# organizer.organize_videos('normal_training_video_names.txt', 'normal_validation_video_names.txt', 'abnormal_validation_video_names.txt')
-
-
-import cv2
-import os
-
-class VideoFrameExtractor:
+class UBNormal_VideoFrameExtractor:
+    '''
+    Usage:
+    base_folders = ['data/test/normal', 'data/test/abnormal', 'data/train']
+    extractor = UBNormal_VideoFrameExtractor(base_folders)
+    extractor.process_all_folders()
+    '''
     def __init__(self, base_folders):
         """
         Initialize the VideoFrameExtractor with base folders.
@@ -114,13 +116,12 @@ class VideoFrameExtractor:
         for folder in self.base_folders:
             self.process_folder(folder)
 
-# Usage
-# base_folders = ['data/test/normal', 'data/test/abnormal', 'data/train']
-# extractor = VideoFrameExtractor(base_folders)
-# extractor.process_all_folders()
-
 
 class Label_loader_save:
+    #get the ground truth label for 'ped2' and 'avenue'
+    ### use example
+    # gt_loader = Label_loader_save('ped2')  # Get gt labels.
+    # gt = gt_loader()
     def __init__(self,name):
         self.name = name
         self.frame_path = f'{name}/test'
@@ -156,18 +157,18 @@ class Label_loader_save:
 
         return all_data
 
-# gt_loader = Label_loader_save('ped2')  # Get gt labels.
-# gt = gt_loader()
 
 def create_train_csv(data_name):
+    '''
+    :param data_name: 'UBNormal', 'SHTech', 'ped2', 'avenue'
+    :return:
+    '''
     source_directory = f'{data_name}/train'
     file_paths = []
     for root, _, files in os.walk(source_directory):
         for file in files:
             file_path = os.path.join(root, file)
             file_paths.append(file_path)
-
-    # labels = list(np.load('SHTech/frame_labels_shanghai.npy'))
     labels = list(np.zeros(len(file_paths), dtype=int))
 
     data = {'image_path': sorted(file_paths), 'label': labels}
@@ -175,9 +176,12 @@ def create_train_csv(data_name):
     csv_file_path = f'{data_name}/train.csv'
     df.to_csv(csv_file_path, index=False)
 
-# create_train_csv('UBNormal')
 
 def create_test_UBNormal_csv(data_name):
+    '''
+    :param data_name: 'UBNormal'
+    :return: create_test_UBNormal_csv('UBNormal')
+    '''
     source_directory = f'{data_name}/test'
     file_paths = []
     for root, _, files in os.walk(source_directory):
@@ -193,75 +197,3 @@ def create_test_UBNormal_csv(data_name):
     csv_file_path = f'{data_name}/test.csv'
     df.to_csv(csv_file_path, index=False)
 
-# create_test_UBNormal_csv('UBNormal')
-
-class TrainDataset(Dataset):
-    def __init__(self, path = 'SHTech/train_1000_0.pt'):
-        self.x = torch.load(path)
-        self.x = self.x.reshape(2000, 2*768)
-        self.y = torch.cat((torch.ones(1000, dtype=torch.long), torch.zeros(1000, dtype=torch.long)), dim=0)
-
-    def __len__(self):
-        # Return the total number of samples
-        return len(self.x)
-
-    def __getitem__(self, idx):
-        # Return a single sample and its label
-        return self.x[idx], self.y[idx]
-
-class TestDataset(Dataset):
-    def __init__(self, path = 'SHTech/test_100.pt'):
-        self.x = torch.load(path)
-        self.x = self.x.reshape(200, 2*768)
-        self.y = torch.cat((torch.ones(50, dtype=torch.long), torch.zeros(50, dtype=torch.long),torch.zeros(50, dtype=torch.long), torch.ones(50, dtype=torch.long)), dim=0)
-
-    def __len__(self):
-        # Return the total number of samples
-        return len(self.x)
-
-    def __getitem__(self, idx):
-        # Return a single sample and its label
-        return self.x[idx], self.y[idx]
-
-
-
-def clip_feature_extractor():
-    # Initialize CLIP model and processor
-    model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=torch.float16,
-                                      low_cpu_mem_usage=True)
-    processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14")
-    model.to(device)
-
-    # Load an image
-    image_path = 'SHTech/test_50_1'
-    normal_rule = read_txt('rule/normal_rule_3.txt')
-    anomaly_rule = read_txt('rule/anomaly_rule_3.txt')
-    image_paths = sorted(get_all_paths(image_path))
-    images = [Image.open(p) for p in image_paths]
-    train_data = torch.zeros((100, 2, 768))
-    for i in range(len(images)):
-        with torch.no_grad():
-            inputs_n = processor(text=normal_rule, images=images[i], return_tensors="pt", padding=True)
-            inputs_a = processor(text=anomaly_rule, images=images[i], return_tensors="pt", padding=True)
-            inputs_n['pixel_values'] = inputs_n['pixel_values'].half()
-            inputs_a['pixel_values'] = inputs_a['pixel_values'].half()
-            inputs_a.to(device)
-            inputs_n.to(device)
-            outputs_n = model(**inputs_n)
-            outputs_a = model(**inputs_a)
-            image_embedding = outputs_n.image_embeds
-            max_index_n = int(torch.sort(outputs_n['logits_per_image'][0], descending=True)[1][0])
-            max_index_a = int(torch.sort(outputs_a['logits_per_image'][0], descending=True)[1][0])
-            text_embeddings_n = outputs_n.text_embeds[max_index_n].reshape(image_embedding.shape)
-            text_embeddings_a = outputs_a.text_embeds[max_index_a].reshape(image_embedding.shape)
-            image_text_n = torch.cat((image_embedding, text_embeddings_n), 0)
-            image_text_a = torch.cat((image_embedding, text_embeddings_a), 0)
-            train_data[i] = image_text_n
-            train_data[i + 50] = image_text_a
-    torch.save(train_data, 'SHTech/test_50_1.pt')
-
-# clip_feature_extractor()
-# normal = torch.load('SHTech/test_50_0.pt')
-# anomal = torch.load('SHTech/test_50_1.pt')
-# test = torch.cat((normal,anomal),dim=0)
-# torch.save(test, 'SHTech/test_100.pt')

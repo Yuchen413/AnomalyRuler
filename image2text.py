@@ -4,14 +4,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2"
 from transformers import LlamaTokenizer, AutoProcessor, AutoModelForCausalLM, OwlViTProcessor, OwlViTForObjectDetection,InstructBlipProcessor, InstructBlipForConditionalGeneration, Blip2Processor, Blip2ForConditionalGeneration
 from tqdm import tqdm
 from utils import *
-# from LLaVA.llava.eval.run_llava import *
-# from LLaVA.llava.mm_utils import get_model_name_from_path
+import argparse
 
-# np.random.seed(2024)
-# torch.manual_seed(2024)
-# torch.cuda.memory_summary(device=None, abbreviated=False)
-
-import gc
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 for i in range(torch.cuda.device_count()):
@@ -228,7 +222,6 @@ def continue_frame(data_root_name):
         filtered_df = df[df.iloc[:, 0].apply(lambda x: x[second_last_slash_pos+1:last_slash_pos].split('/')[0]== i)]
         filtered_df.to_csv(f'{data_root_name}/test_frame/test_{i}.csv', index=False)
 
-# continue_frame('UBNormal')
 def get_description_frame(data_root_name):
     cog_model = AutoModelForCausalLM.from_pretrained(
         'THUDM/cogvlm-chat-hf',
@@ -251,8 +244,23 @@ def get_description_frame(data_root_name):
             for inner_list in descriptions_per_video:
                 file.write(inner_list + '\n')
 
-# get_description_frame('UBNormal')
 
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--data', type=str, default='SHTech',
+                        choices=['SHTech', 'avenue', 'ped2', 'UBNormal'])
+    args = parser.parse_args()
+    return args
+
+def main():
+    args = parse_arguments()
+    data_name = args.data
+    continue_frame(data_name)
+    get_description_frame(data_name)
+
+
+if __name__ == "__main__":
+    main()
 
 
 

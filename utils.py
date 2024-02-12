@@ -89,7 +89,6 @@ def random_select_data(path = 'SHTech/train.csv', num = 5, label = 0):
         destination_path = os.path.join(destination_directory, image_filename)
         shutil.copy2(image_path, destination_path)
 
-random_select_data()
 def random_select_data_without_copy(path = 'SHTech/train.csv', num = 5, label = 0):
     df = pd.read_csv(path)
     image_file_paths = list(df.loc[df['label'] == label, 'image_path'].values)
@@ -127,22 +126,6 @@ def read_line(path = 'SHTech/test_owlvit.txt'):
     with open(path, 'r') as file:
         lines = [line.strip().split('\n') for line in file]
     return lines
-
-#
-# def post_process(text):
-#     key_phrases = ['Normal', 'Anomaly']
-#     answer_index = text.find('Answer:')
-#     if answer_index != -1:
-#         # Extract the substring starting from 'Answer:'
-#         substring = text[answer_index + len('Answer:'):]
-#         # Split the substring into words and return the first one that contains a key phrase
-#         words = substring.split('.')[0]
-#         for phrase in key_phrases:
-#             if phrase in words:
-#                 if phrase=='Anomaly' : return 1
-#                 if phrase=='Normal': return 0
-#     print("Neither 'Normal' nor 'Anomaly' found in the specified locations.")
-#     return -1
 
 def find_substring_indices(main_string, substring):
     indices = []

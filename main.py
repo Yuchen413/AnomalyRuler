@@ -1,6 +1,6 @@
 from llm import *
-from openai_api import llm_induction_1
 from utils import *
+from image2text import cogvlm
 import argparse
 
 def parse_arguments():
@@ -9,6 +9,8 @@ def parse_arguments():
                         choices=['SHTech', 'avenue', 'ped2', 'UBNormal'])
     parser.add_argument('--induct', action='store_true')
     parser.add_argument('--deduct', action='store_true')
+    parser.add_argument('--b', type = int, default=10)
+    parser.add_argument('--bs', type = int, default=1)
     args = parser.parse_args()
     return args
 
@@ -31,16 +33,16 @@ def main():
         #Rule generation:
         objects_list = []
         rule_list = []
-        batch = 10
-        batch_size = 1
+        batch = args.b
+        batch_size = args.bs
         for i in range(batch):
             print('=====> Image Description:')
             selected_image_paths = random_select_data_without_copy(path=f'{data_name}/train.csv', num=batch_size, label=0)
             print(selected_image_paths)
             objects = cogvlm(model=cog_model, mode='chat', image_paths=selected_image_paths)
             objects_list.append(objects)
-            rule_list.append(llm_induction_1(objects))
-        llm_rule_correction(rule_list, batch, data_full_name)
+            rule_list.append(gpt_induction(objects, data_full_name))
+        gpt_rule_correction(rule_list, batch, data_full_name)
 
     if args.deduct:
         ## Deduction
@@ -53,11 +55,12 @@ def main():
         final_result = pd.DataFrame(columns=['file_name','labels','preds', 'scores', 'probs'])
 
         for item in entries:
+            print(item)
             name = item.split('.')[0]
 
             labels = pd.read_csv(f'{data_name}/test_frame/{name}.csv').iloc[:, 1].tolist()
-            preds, scores, probs = mixtral_deduct(data_name,f'{data_name}/modified_test_frame_description/{name}.txt',
-                                                  'rule/rule_SHTech.txt', tokenizer, llm_model, labels=labels)
+            preds, scores, probs = mixtral_double_deduct(data_name,f'{data_name}/modified_test_frame_description/{name}.txt',
+                                                  f'rule/rule_{data_name}.txt', tokenizer, llm_model, labels=labels)
             ### This is for 100 random test SHtech
             # labels = [1]*50 + [0]*50
             # preds, scores, probs = mixtral_deduct(f'SHTech/test_100_cogvlm_1_0.txt',

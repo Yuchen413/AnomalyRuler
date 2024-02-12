@@ -1,10 +1,9 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
-import numpy as np
-import pandas as pd
 from utils import *
 import re
 from collections import Counter
+import argparse
 
 def read_file(file_path):
     with open(file_path, 'r') as file:
@@ -19,7 +18,7 @@ def cluster_kmeans(sentences, num_clusters=2):
     kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(X)
     return kmeans.cluster_centers_, kmeans.labels_
 
-def clsuter_keyword(text_lines):
+def cluster_keyword(text_lines):
     anomaly_from_rule = [
     "trolley",
     "cart",
@@ -45,39 +44,15 @@ def clsuter_keyword(text_lines):
     "tampering",
     "lingering"]
     preds = []
+    anomaly_word = []
     for line in text_lines:
         found_anomaly = False
         for anomaly in anomaly_from_rule:
             if anomaly in line:
                 found_anomaly = True
+                anomaly_word.append(anomaly)
         preds.append(1 if found_anomaly else 0)
-    return preds, anomaly_from_rule
-
-def old_custom_smooth(data, window_size=20):
-    # Ensure the window size is odd to have a central element
-    if window_size % 2 == 0:
-        window_size += 1
-
-    # Pad the data at the beginning and end to handle edge cases
-    pad_size = window_size // 2
-    padded_data = np.pad(data, pad_size, mode='edge')
-
-    # Initialize the smoothed data array
-    smoothed_data = np.copy(data)
-
-    # Iterate through the data and smooth
-    for i in range(len(data)):
-        # Determine the start and end indices of the window
-        start = i
-        end = i + window_size
-
-        # Slice the window and count the occurrences
-        window = padded_data[start:end]
-        ones_count = np.sum(window)
-        zeros_count = window_size - ones_count
-        # Assign new value based on the majority
-        smoothed_data[i] = 1 if ones_count > zeros_count else 0
-    return smoothed_data
+    return preds, anomaly_from_rule, anomaly_word
 
 def majority_smooth(data, window_size=20, edge_region_size=None):
     # Adjust window size to be odd
@@ -124,6 +99,7 @@ def remove_sentences_with_keywords(text, keyword_list):
     partial_sentences = re.split(r',|\.', text)
     # Keeping sentences that do not contain any of the keywords
     return '. '.join(sentence for sentence in partial_sentences if not any(keyword in sentence for keyword in keyword_list))
+
 def modify_text(preds, s_preds, keyword_list, text_list, window_size):
     if window_size % 2 != 0:
         window_size += 1
@@ -144,10 +120,13 @@ def modify_text(preds, s_preds, keyword_list, text_list, window_size):
             most_freq_keyword = find_most_frequent_keyword(window_text, keyword_list)
             if most_freq_keyword:
                 if most_freq_keyword.endswith('ing'):
-                    addition = f'there are people {most_freq_keyword}'
+                    addition = f'{most_freq_keyword}'
                 else:
-                    addition = f'there is a {most_freq_keyword}'
-                text = re.sub(r'\.', f'. {addition}', text, 1)
+                    addition = f'riding a {most_freq_keyword}'
+                # text = re.sub(r'\.', f'. {addition}', text, 1)
+                pattern = r"(the first person is)[^,]*"
+                text = re.sub(pattern, r"\1 " + addition, text)
+
         modified_text_list.append(text)
 
     return modified_text_list
@@ -156,23 +135,21 @@ def modify_text(preds, s_preds, keyword_list, text_list, window_size):
 def evaluate(file_path, labels, output_file_path, save_modified):
     # Initial labels using keyword in rules
     text_lines = read_file(file_path)
-    preds, keyword_list = clsuter_keyword(text_lines)
-    print(np.asarray(labels))
-    print(np.asarray(preds))
+    preds, keyword_list, _ = cluster_keyword(text_lines)
+    # print(np.asarray(labels))
+    # print(np.asarray(preds))
 
     # First-time EMA to smooth the preds with a more sensitive way
-    ema_smoothed_data = pd.Series(preds).ewm(span=5, adjust=True).mean()
+    ema_smoothed_data = pd.Series(preds).ewm(span=30, adjust=True).mean()
     threshold = ema_smoothed_data.mean()
     ema_preds = (ema_smoothed_data > threshold).astype(int)
 
     # Then majority_smooth to adjust the general trends
     s_preds = majority_smooth(ema_preds, window_size=20, edge_region_size=None)
-
     if threshold ==0:
         threshold += 0.00001
     # Second-time EMA to get the auc score
     scores = pd.Series(s_preds).ewm(alpha = threshold, adjust=True).mean()
-    # scores = pd.Series(s_preds).ewm(span=5, adjust=True).mean()
 
     if save_modified == True:
         modified_texts = modify_text(preds, s_preds, keyword_list, text_lines, window_size=20)
@@ -186,16 +163,24 @@ def evaluate(file_path, labels, output_file_path, save_modified):
     print(f'Soomth ACC: {accuracy_score(labels, s_preds)}')
     print(f'Soomth Precision: {precision_score(labels, s_preds)}')
     print(f'Soomth Recall: {recall_score(labels, s_preds)}')
-    return preds, list(s_preds), list(scores)
+    return preds, list(s_preds), list(scores), list(ema_smoothed_data)
 
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--data', type=str, default='SHTech',
+                        choices=['SHTech', 'avenue', 'ped2', 'UBNormal'])
+    args = parser.parse_args()
+    return args
 
 def main():
-    data_name = 'ped2'
+    args = parse_arguments()
+    data_name = args.data
     entries = os.listdir(f'{data_name}/test_frame_description')
     all_preds = []
     all_labels = []
     all_spreds = []
     all_scores = []
+    all_ori_scores = []
     for item in entries:
         name = item.split('.')[0]
         input_file_path = f'{data_name}/test_frame_description/{name}.txt'  # Path to your input text file
@@ -203,16 +188,18 @@ def main():
         if not os.path.exists(os.path.dirname(output_file_path)):
             os.makedirs(os.path.dirname(output_file_path))
         labels = pd.read_csv(f'{data_name}/test_frame/{name}.csv').iloc[:, 1].tolist()
-        preds, s_preds, scores = evaluate(input_file_path, labels, output_file_path, save_modified=False)
+        preds, s_preds, scores, ori_scores = evaluate(input_file_path, labels, output_file_path, save_modified=True)
         all_labels += labels
         all_preds += preds
         all_spreds += s_preds
         all_scores += scores
+        all_ori_scores += ori_scores
 
     print(f"======================ALL DATA========================>  ")
     print(f'Ori ACC: {accuracy_score(all_labels, all_preds)}')
     print(f'Ori Precision: {precision_score(all_labels, all_preds)}')
     print(f'Ori Recall: {recall_score(all_labels, all_preds)}')
+    print(f'Ori AUC: {roc_auc_score(all_labels, all_ori_scores)}')
     print(f'Smooth ACC: {accuracy_score(all_labels, all_spreds)}')
     print(f'Smooth Precision: {precision_score(all_labels, all_spreds)}')
     print(f'Smooth Recall: {recall_score(all_labels, all_spreds)}')

@@ -3,13 +3,11 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, TextStreamer
 import numpy as np
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2"
-from PIL import Image
-from tqdm import tqdm
 import torch
 from utils import *
 from collections import Counter
-from openai_api import llm_rule_correction
-from image2text import cogvlm
+from openai import OpenAI
+from majority_smooth import cluster_keyword
 
 
 np.random.seed(2024)
@@ -18,6 +16,14 @@ torch.manual_seed(2024)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 for i in range(torch.cuda.device_count()):
     print(f"Device {i}: {torch.cuda.get_device_name(i)}")
+
+EXPRESSION_LIST = [
+    "certain", "almost certain", "highly likely", "very good chance",
+    "we believe", "probably", "probable", "likely", "better than even",
+    "about even", "probably not", "we doubt", "unlikely", "little chance",
+    "chances are slight", "improbable", "highly unlikely", "almost no chance",
+    "impossible"
+]
 
 def lamma2():
     model_path = "meta-llama/Llama-2-70b-hf"
@@ -107,118 +113,73 @@ def solar():
     # print(output_text)
 
 
-def mixtral_induct(desc_path='SHTech/object_data/train_5_0_cogvlm.txt'):
-    model_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
-    # model_id = "mistralai/Mistral-7B-Instruct-v0.2"
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-    model = AutoModelForCausalLM.from_pretrained(model_id, low_cpu_mem_usage=True, torch_dtype=torch.float16,
-                                                 device_map='auto').eval()
-    answers = []
-    filename = f"rule/{desc_path.split('/')[-1].split('.')[0]}_mistral7B.txt"
-    if os.path.exists(filename):
-        os.remove(filename)
-        print(f"File {filename} has been deleted.")
-    else:
-        print(f"The file {filename} does not exist.")
+def gpt_induction(objects,data_full_name):
+    client = OpenAI(api_key="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")
+    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
+    model = model_list[3]
+    # objects = read_line(txt_path)
+    # objects = read_txt_to_list(txt_path)
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system",
+             "content": f'''As a surveillance monitor for urban safety using the {data_full_name} dataset, my job is derive rules for detect abnormal human activities or environmental object.'''},
+            {"role": "user", "content": "Based on the assumption that the given frame description are normal, "
+                                        "Please derive rules for normal, start from an abstract concept and then list concrete activities or objects."},
+            {"role": "assistant", "content": '''
+                                        **Rules for Normal Human Activities:
+                                        1. Walking with common objects such as a backpack, bag, umbrella
+                                        **Rules for Normal Environmental Objects:
+                                        1.
+                                        '''},
+            {"role": "user",
+             "content": "Compared with the above rules for normal, can you provide potential rules for anomaly? Please start from an abstract concept then list concrete activities or objects, compared with normal ones."},
+            {"role": "assistant", "content": '''**Rules for Anomaly Human Activities:
+                                        1. Non-walking movement such as riding a bicycle, scooting, skateboarding
+                                        **Rules for Anomaly Environmental Objects:
+                                        1.
+                                        '''},
 
-    objects = read_line(desc_path)
-    print(objects)
-    # for obj in objects:
-    text = f'''As a surveillance monitor for urban safety, my job is to analyze the video footage and identify anything that could be 
-               considered abnormal behavior or environment. Given the description, your task is to derive rules for anomaly detection.
-        Now you are given the description {objects}, 
-        Answer:
-        1.'''
-    inputs = tokenizer(text, return_tensors="pt").to(device)
-    outputs = model.generate(**inputs, max_new_tokens=1000)
-    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    answers.append(answer)
-    # print(f'-----------------------------------------------------{count}-----------------------------------------------------------------------')
-    print(answer)
-    # with open(filename, 'a') as file:
-    #     for answer in answers:
-    #         file.write(
-    #             f'-----------------------------------------------------{count}-----------------------------------------------------------------------' + '\n')
-    #         file.write(answer + '\n')
-    return
+            {"role": "user",
+             "content": f"Now you are given {objects}. What are the Normal and Anomaly rules you got? Think step by step. Reply following the above format, start from an abstract concept and then list as many as concrete activities or objects. List them using short terms, not an entire sentence."},
+        ]
+    )
+    print('=====> Rule Generation:')
+    print(response.choices[0].message.content)
+    return response.choices[0].message.content
 
 
-def mixtral_verifier(cog_model, tokenizer, model, rule):
-    # model_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+def gpt_rule_correction(objects, n, data_full_name):
+    client = OpenAI(api_key="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")
+    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
+    model = model_list[3]
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system",
+             "content": f'''As a surveillance monitor for urban safety using the {data_full_name} dataset, my job is to organize rules for detect abnormal activities and objeacts.'''},
+            {"role": "user", "content": f"You are given {n} independent sets of rules for Normal and Anomaly. "
+                                        f"For the organized normal Rules, list the given normal rules with high-frenquency elements"
+                                        f"For the organized anomaly Rules, list all the given anomaly rules"},
+            {"role": "assistant", "content": '''
+                                                **Rules for Anomaly Human Activities:
+                                                1. 
+                                                **Rules for Anomaly Environmental Objects:
+                                                1.
+                                                **Rules for Normal Human Activities:
+                                                1. 
+                                                **Rules for Normal Environmental Objects:
+                                                1.
 
-    # model_id = "mistralai/Mistral-7B-Instruct-v0.2"
-    # tokenizer = AutoTokenizer.from_pretrained(model_id)
-    # model = AutoModelForCausalLM.from_pretrained(model_id, low_cpu_mem_usage=True, torch_dtype=torch.float16,
-    #                                              device_map='auto').eval()
+                                                '''},
+            {"role": "user",
+             "content": f"Now you are given {n} independent sets of rules as the sublists of {objects}. What rules for Anomaly and Normal do you get? Think step by step, reply following the above format, start from an abstract concept and then generalizes to concrete activities or objects. Just output the rules (first anomaly, then normal) without other explanation."},
+        ]
+    )
+    print('=====> Organized Rules:')
+    print(response.choices[0].message.content)
+    return response.choices[0].message.content
 
-    # cog_model = AutoModelForCausalLM.from_pretrained(
-    #     'THUDM/cogvlm-chat-hf',
-    #     torch_dtype=torch.bfloat16,
-    #     low_cpu_mem_usage=True,
-    #     device_map='auto',
-    #     trust_remote_code=True
-    # ).eval()
-
-    # filename = 'rule/rule_gpt4_wrong.txt'
-    # if os.path.exists(filename):
-    #     os.remove(filename)
-    #     print(f"File {filename} has been deleted.")
-    # else:
-    #     print(f"The file {filename} does not exist.")
-    answers = []
-    preds = []
-    labels = [0]*25
-    count = 0
-    # objects = read_line(desc_path)
-    # rule = open(rule_path, "r").read()
-    rule_number_used = []
-    for i in range(5):
-        selected_image_paths = random_select_data_without_copy(path='SHTech/train.csv', num=5, label=0)
-        objects = cogvlm(model= cog_model, mode='chat', image_paths=selected_image_paths)
-        wrong_answer = []
-        for obj in objects:
-            print(f'-----------------------------------------------------{count}-----------------------------------------------------------------------')
-            print(obj)
-            count += 1
-            text = f'''You are monitoring the campus, you task is to detect the anomaly based on the given rules. The rules are: 
-            {rule}. 
-            Now you are given {[obj]}. Which rule you are using? Answer the rule number. Is it normal or anomaly? Answer Anomaly even if only one anomaly rule matches, otherwise answer Normal. Think step by step.
-            Answer:'''
-            inputs = tokenizer(text, return_tensors="pt").to(device)
-            outputs = model.generate(**inputs, max_new_tokens=1000)
-            answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
-            preds.append(post_process(answer))
-            answers.append(answer)
-            if post_process(answer) == 1:
-                print('==>Get Wrong')
-                wrong_answer.append(answer)
-            else:
-                print('==>Count #Rule')
-                rule_num = list(set(re.findall(r'\d', str(re.split(r'Answer:', answer)[1:]))))
-                print(rule_num)
-                rule_number_used += rule_num
-                # print(re.findall(r'\b\d+\b', str(re.split(r'Rule used:|Rule:|Rule|rule', answer)[1:])))
-                # with open(filename, 'a') as file:
-                #     file.write(
-                #         f'-----------------------------------------------------{count}-----------------------------------------------------------------------' + '\n')
-                #     file.write(answer + '\n')
-            print(answer)
-        # if len(wrong_answer) > 0:
-        #     rule = llm_rule_correction(wrong_answer)
-    print(preds)
-    print(f'ACC: {accuracy_score(labels, preds)}')
-    print(f'Precision: {precision_score(labels, preds)}')
-    print(f'Recall: {recall_score(labels, preds)}')
-    print(Counter(rule_number_used))
-
-# mixtral_verifier('rule/rule_gpt4_both.txt')
-EXPRESSION_LIST = [
-    "certain", "almost certain", "highly likely", "very good chance",
-    "we believe", "probably", "probable", "likely", "better than even",
-    "about even", "probably not", "we doubt", "unlikely", "little chance",
-    "chances are slight", "improbable", "highly unlikely", "almost no chance",
-    "impossible"
-]
 
 def mixtral_deduct(data, desc_path, rule_path, tokenizer, model, labels):
     preds = []
@@ -264,6 +225,72 @@ def mixtral_deduct(data, desc_path, rule_path, tokenizer, model, labels):
     print(f'ACC: {accuracy_score(labels, preds)}')
     print(f'Precision: {precision_score(labels, preds)}')
     print(f'Recall: {recall_score(labels, preds)}')
-    print(f'AUC: {roc_auc_score(labels, scores)}')
+    try:
+        print(f'AUC: {roc_auc_score(labels, scores)}')
+    except Exception as e:
+        print(f"An error occurred: {e}. Setting AUC to 0.0.")
+    return preds, scores, probs
+
+
+def mixtral_double_deduct(data, desc_path, rule_path, tokenizer, model, labels):
+    preds = []
+    probs = []
+    scores = []
+    saved_result = pd.DataFrame(columns=['answer', 'label', 'pred', 'probability', 'score'])
+    rule = open(rule_path, "r").read()
+    objects_list = read_line(desc_path)
+    for index, obj in enumerate(objects_list):
+        ini_pred, _, anomaly_keyword = cluster_keyword(obj)
+        if ini_pred[0] == 1:
+            ini_answer = f'Anomaly, since I found {anomaly_keyword[0]}.'
+            text = f'''You will be given an description of scene, you task is to double check my initial anomaly detection result based on the rules. The rules are:
+                        {rule}\n\n
+                        My initial result is {ini_answer}\n
+                        First, what is your best answer? Answer: anomaly, if you also find {anomaly_keyword[0]}! otherwise normal.>\n\n
+                        Second, describe how likely it is that your answer is correct as one of the following expressions: ${EXPRESSION_LIST}. \nConfidence: <description of confidence, without any extra commentary whatsoever; just a short phrase!>\n\n
+                        Now you are given the scene {obj}, think step by step.'''
+
+        else:
+            ini_answer = f"Normal, help me double check."
+            text = f'''You will be given an description of scene, you task is to double check my initial anomaly detection result based on the rules. The rules are:
+                        {rule}\n\n
+                        My initial result is {ini_answer}\n
+                        First, what is your best answer? Answer: anomaly, if ANY anomaly rule (even if only one, no matter human activities or non-human objects) matches, otherwise answer: normal.>\n\n
+                        Second, describe how likely it is that your answer is correct as one of the following expressions: ${EXPRESSION_LIST}. \nConfidence: <description of confidence, without any extra commentary whatsoever; just a short phrase!>\n\n
+                        Now you are given the scene {obj}, think step by step.'''
+
+        inputs = tokenizer(text, return_tensors="pt").to(device)
+        outputs = model.generate(**inputs, max_new_tokens=4000)
+        answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        print_out = str(obj)+find_text_after(answer, 'think step by step.')
+        pred = 1 if ini_pred[0] == 1 else post_process(print_out)
+        prob = get_anomaly_score(print_out)
+        preds.append(pred)
+        probs.append(prob)
+        if pred == 1:
+            score = prob
+        else:
+            score = float("{:.2f}".format(1-prob))
+        scores.append(score)
+        print(f'----------------------------------------------------------------------------------------------------------------------------')
+        print(pred)
+        print(score)
+        print(print_out)
+        saved_result = saved_result._append({'answer': print_out,
+                    'label': labels[index],
+                    'pred': pred,
+                    'probability': prob,
+                    'score': score},
+                     ignore_index=True)
+    saved_result.to_csv(f"results/{data}/{desc_path.split('/')[-1].split('.')[0]}.csv", index=False)
+    print(f'Frequency of Probabilities: {Counter(probs)}')
+    print(f'Frequency of Anomaly scores: {Counter(scores)}')
+    print(f'ACC: {accuracy_score(labels, preds)}')
+    print(f'Precision: {precision_score(labels, preds)}')
+    print(f'Recall: {recall_score(labels, preds)}')
+    try:
+        print(f'AUC: {roc_auc_score(labels, scores)}')
+    except Exception as e:
+        print(f"An error occurred: {e}. Setting AUC to 0.0.")
     return preds, scores, probs
 
