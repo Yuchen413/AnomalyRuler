@@ -125,23 +125,23 @@ def gpt_induction(objects,data_full_name):
             {"role": "system",
              "content": f'''As a surveillance monitor for urban safety using the {data_full_name} dataset, my job is derive rules for detect abnormal human activities or environmental object.'''},
             {"role": "user", "content": "Based on the assumption that the given frame description are normal, "
-                                        "Please derive rules for normal, start from an abstract concept and then list concrete activities or objects."},
+                                        "Please derive rules for normal, start from an abstract concept and then generalize to concrete activities or objects."},
             {"role": "assistant", "content": '''
                                         **Rules for Normal Human Activities:
-                                        1. Walking with common objects such as a backpack, bag, umbrella
+                                        1. 
                                         **Rules for Normal Environmental Objects:
                                         1.
                                         '''},
             {"role": "user",
-             "content": "Compared with the above rules for normal, can you provide potential rules for anomaly? Please start from an abstract concept then list concrete activities or objects, compared with normal ones."},
+             "content": "Compared with the above rules for normal, can you provide potential rules for anomaly? Please start from an abstract concept then generalize to concrete activities or objects, compared with normal ones."},
             {"role": "assistant", "content": '''**Rules for Anomaly Human Activities:
-                                        1. Non-walking movement such as riding a bicycle, scooting, skateboarding
+                                        1. 
                                         **Rules for Anomaly Environmental Objects:
                                         1.
                                         '''},
 
             {"role": "user",
-             "content": f"Now you are given {objects}. What are the Normal and Anomaly rules you got? Think step by step. Reply following the above format, start from an abstract concept and then list as many as concrete activities or objects. List them using short terms, not an entire sentence."},
+             "content": f"Now you are given {objects}. What are the Normal and Anomaly rules you got? Think step by step. Reply following the above format, start from an abstract concept and then generalize to concrete activities or objects. List them using short terms, not an entire sentence."},
         ]
     )
     print('=====> Rule Generation:')
@@ -163,17 +163,20 @@ def gpt_rule_correction(objects, n, data_full_name):
                                         f"For the organized anomaly Rules, list all the given anomaly rules"},
             {"role": "assistant", "content": '''
                                                 **Rules for Anomaly Human Activities:
-                                                1. 
+                                                1. Non-walking movement such as riding a bicycle, scooting, skateboarding.
+                                                2.
                                                 **Rules for Anomaly Environmental Objects:
-                                                1.
+                                                1. Ground transportation such as vehicles, motorcycles.
+                                                2.
                                                 **Rules for Normal Human Activities:
-                                                1. 
+                                                1. Walking with common objects such as a backpack, bag, umbrella.
+                                                2.
                                                 **Rules for Normal Environmental Objects:
-                                                1.
-
+                                                1. Architectural structures such as building, bridges.
+                                                2.
                                                 '''},
             {"role": "user",
-             "content": f"Now you are given {n} independent sets of rules as the sublists of {objects}. What rules for Anomaly and Normal do you get? Think step by step, reply following the above format, start from an abstract concept and then generalizes to concrete activities or objects. Just output the rules (first anomaly, then normal) without other explanation."},
+             "content": f"Now you are given {n} independent sets of rules as the sublists of {objects}. What rules for Anomaly and Normal do you get? Think step by step, reply following the above format, start from an abstract concept and then generalize to concrete activities or objects."},
         ]
     )
     print('=====> Organized Rules:')
