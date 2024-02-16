@@ -114,7 +114,7 @@ def solar():
 
 
 def gpt_induction(objects,data_full_name):
-    client = OpenAI(api_key="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")
+    client = OpenAI(api_key="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")
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
     model = model_list[3]
     # objects = read_line(txt_path)
@@ -150,7 +150,7 @@ def gpt_induction(objects,data_full_name):
 
 
 def gpt_rule_correction(objects, n, data_full_name):
-    client = OpenAI(api_key="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")
+    client = OpenAI(api_key="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")
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
     model = model_list[3]
     response = client.chat.completions.create(

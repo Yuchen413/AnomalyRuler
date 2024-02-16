@@ -4,7 +4,7 @@ import base64
 import re
 
 def baseline():
-    client = OpenAI(api_key="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")
+    client = OpenAI(api_key="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")
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo"]
     model = model_list[0]
     txt_path = 'SHTech/object_data/test_50_1_vicuna-7b-v1.5_baseline.txt'
@@ -81,7 +81,7 @@ def baseline():
 # baseline()
 
 def llm_deduction(txt_path, rule, rule_name):
-    client = OpenAI(api_key="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")
+    client = OpenAI(api_key="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")
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4"]
     model = model_list[2]
     objects = read_line(txt_path)
@@ -129,7 +129,7 @@ def gpt4v_induction():
     import requests
 
     # OpenAI API Key
-    api_key = "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"
+    api_key = "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"
 
     # Function to encode the image
     def encode_image(image_path):
@@ -242,7 +242,7 @@ def gpt4v_induction():
     print(response)
     print(response.json()['choices'][0]['message']['content'])
 def gpt_text2object():
-    client = OpenAI(api_key="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")
+    client = OpenAI(api_key="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")
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo"]
     model = model_list[1]
     txt_path = 'SHTech/object_data/test_50_1_instructblip.txt'
@@ -274,7 +274,7 @@ def gpt4v_deduction(rule_name, prompt, image_root = "SHTech/test_50_0"):
 
     # OpenAI API Key
     model = "gpt-4-vision-preview"
-    api_key = "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"
+    api_key = "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"
 
     # Function to encode the image
     def encode_image(image_path):
@@ -334,7 +334,7 @@ def gpt4v_deduction(rule_name, prompt, image_root = "SHTech/test_50_0"):
     #     print(f'Acc:{count_1 / len(results)}')
 
 def llm_induction(objects):
-    client = OpenAI(api_key="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")
+    client = OpenAI(api_key="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")
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
     model = model_list[3]
     # objects = read_line(txt_path)
@@ -370,7 +370,7 @@ def llm_induction(objects):
 
 
 def llm_rule_correction(objects, n, data_full_name):
-    client = OpenAI(api_key="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")
+    client = OpenAI(api_key="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")
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
     model = model_list[3]
     response = client.chat.completions.create(
