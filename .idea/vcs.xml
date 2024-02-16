@@ -3,6 +3,5 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/LLaVA" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/recognize-anything" vcs="Git" />
   </component>
 </project>
