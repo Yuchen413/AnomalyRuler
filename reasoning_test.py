@@ -3,7 +3,6 @@ import torch
 import os
 from openai import OpenAI
 from transformers import AutoTokenizer, AutoModelForCausalLM
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2"
 np.random.seed(2024)
 torch.manual_seed(2024)
 
@@ -12,7 +11,7 @@ for i in range(torch.cuda.device_count()):
     print(f"Device {i}: {torch.cuda.get_device_name(i)}")
 
 labels = read_txt_to_one_list('SHTech/test_100_choices_answer.txt')
-
+print(sorted(get_all_paths('SHTech/test_50_1')))
 
 def reason_mistral(choices, desc_path, rule_path):
     model_id = "mistralai/Mistral-7B-Instruct-v0.2"
@@ -57,7 +56,7 @@ def reason_gpt(choices, desc_path, rule_path):
                 {"role": "user",
                  "content": f'''Description: {obj[0]}\n
                     Choices: {choices_list[index][0]}\n
-                    Choose just one correct answer from the options (A, B, C, or D) and output only without any explanation, please Answer:'''},
+                    Choose just one correct answer from the options (A, B, C, or D) and output without any explanation, please Answer:'''},
             ]
         )
         print(response.choices[0].message.content)
@@ -70,10 +69,74 @@ def reason_gpt(choices, desc_path, rule_path):
     return preds
 
 
+def reason_gpt4v(choices):
+    import base64
+    import requests
+
+    # OpenAI API Key
+    preds = []
+    model = "gpt-4-vision-preview"
+    api_key = "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"
+
+
+    # Function to encode the image
+    def encode_image(image_path):
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
+
+    image_paths = sorted(get_all_paths("SHTech/test_50_1")) + sorted(get_all_paths("SHTech/test_50_0"))
+    choices_list = read_line(choices)
+    base64_images = [encode_image(i) for i in image_paths]
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+
+
+    for index, img in enumerate(base64_images):
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f'Please determine whether the video frames contains anomalies or outliner points. Choose one specific reason from {choices_list[index][0]} and output it without any explanation, please Answer:'
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{img}"
+                            },
+
+                        }
+                    ]
+                }
+            ],
+            "max_tokens": 800
+        }
+
+        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+        print(response.json()['choices'][0]['message']['content'])
+        if '.' in response.json()['choices'][0]['message']['content']:
+            preds.append(response.json()['choices'][0]['message']['content'].split('.')[0].strip())
+        else:
+            preds.append(response.json()['choices'][0]['message']['content'].strip())
+        print(preds)
+
+    return preds
+
 
 # predicted_labels = reason_mistral('SHTech/test_100_choices.txt', 'SHTech/test_100_cogvlm_1_0.txt', 'rule/rule_SHTech.txt'
-predicted_labels = reason_gpt('SHTech/test_100_choices.txt', 'SHTech/test_100_cogvlm_1_0.txt', 'rule/rule_SHTech.txt')
+# predicted_labels = reason_gpt('SHTech/test_100_choices.txt', 'SHTech/test_100_cogvlm_1_0.txt', 'rule/rule_SHTech.txt')
+#
 
+# predicted_labels = reason_gpt4v('SHTech/test_100_choices.txt')
+
+
+predicted_labels = read_txt_to_one_list('SHTech/test_100_choices_gpt4v_no_rule.txt')
 correct_predictions_incl_x = sum(1 for gt, pred in zip(labels, predicted_labels) if gt == pred)
 total_predictions_incl_x = len(labels)
 accuracy_incl_x = correct_predictions_incl_x / total_predictions_incl_x
@@ -86,7 +149,9 @@ accuracy_excl_x = correct_predictions_excl_x / total_predictions_excl_x
 print(accuracy_incl_x)
 print(accuracy_excl_x)
 
-path = 'SHTech/test_100_choices_gpt_no_rule.txt'
-with open(path, 'w') as file:
-    for sentence in predicted_labels :
-        file.write(sentence + "\n")
+
+
+# path = 'SHTech/test_100_choices_gpt4v_no_rule.txt'
+# with open(path, 'w') as file:
+#     for sentence in predicted_labels :
+#         file.write(sentence + "\n")

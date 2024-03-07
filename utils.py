@@ -2,14 +2,13 @@ import numpy as np
 import pandas as pd
 import os
 import shutil
-import torchvision.transforms.functional as TF
+# import torchvision.transforms.functional as TF
 import torch.nn as nn
-from IPython.display import display
 from PIL import Image
 import re
-import nltk
-from nltk.tokenize import word_tokenize
-from nltk.corpus import wordnet
+# import nltk
+# from nltk.tokenize import word_tokenize
+# from nltk.corpus import wordnet
 from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, recall_score
 
 np.random.seed(2024)
@@ -228,6 +227,8 @@ def get_wordnet_pos(treebank_tag):
     if treebank_tag.startswith('V'):
         return wordnet.VERB
     return None
+
+
 
 def read_and_process_file(content):
 

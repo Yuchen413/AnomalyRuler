@@ -87,6 +87,39 @@ def majority_smooth(data, window_size=20, edge_region_size=None):
 
     return smoothed_data
 
+def ema_majority_smooth(ema_data, threshold, window_size=20, edge_region_size=None):
+    # Adjust window size to be odd
+    if window_size % 2 == 0:
+        window_size += 1
+    pad_size = window_size // 2
+
+    # Determine edge region size if not specified
+    if edge_region_size is None:
+        edge_region_size = pad_size
+
+    padded_data = np.pad(ema_data, pad_size, mode='edge')
+    smoothed_data = np.zeros(len(ema_data), dtype=int)
+
+    for i in range(len(ema_data)):
+        # Apply different rule for edge regions
+        if i < edge_region_size or i >= len(ema_data) - edge_region_size:
+            # For edge data, consider only the previous pad_size values
+            start = max(0, i - pad_size)
+            end = i + 1  # Include the current point
+            window = padded_data[start:end]
+        else:
+            # Regular processing for central part
+            start = i
+            end = i + window_size
+            window = padded_data[start:end]
+
+        # Apply majority rule based on threshold
+        above_threshold_count = np.sum(window > threshold)
+        below_threshold_count = len(window) - above_threshold_count
+        smoothed_data[i] = 1 if above_threshold_count > below_threshold_count else 0
+
+    return smoothed_data
+
 def find_most_frequent_keyword(text, keyword_list):
     words = re.findall(r'\b\w+\b', text)
     keyword_freq = Counter(word for word in words if word in keyword_list)
@@ -140,12 +173,10 @@ def evaluate(file_path, labels, output_file_path, save_modified):
     # print(np.asarray(preds))
 
     # First-time EMA to smooth the preds with a more sensitive way
-    ema_smoothed_data = pd.Series(preds).ewm(span=30, adjust=True).mean()
+    ema_smoothed_data = pd.Series(preds).ewm(alpha = 0.33, adjust=True).mean()
     threshold = ema_smoothed_data.mean()
-    ema_preds = (ema_smoothed_data > threshold).astype(int)
+    s_preds = ema_majority_smooth(ema_smoothed_data, threshold, window_size=10)
 
-    # Then majority_smooth to adjust the general trends
-    s_preds = majority_smooth(ema_preds, window_size=20, edge_region_size=None)
     if threshold ==0:
         threshold += 0.00001
     # Second-time EMA to get the auc score
@@ -188,7 +219,7 @@ def main():
         if not os.path.exists(os.path.dirname(output_file_path)):
             os.makedirs(os.path.dirname(output_file_path))
         labels = pd.read_csv(f'{data_name}/test_frame/{name}.csv').iloc[:, 1].tolist()
-        preds, s_preds, scores, ori_scores = evaluate(input_file_path, labels, output_file_path, save_modified=True)
+        preds, s_preds, scores, ori_scores = evaluate(input_file_path, labels, output_file_path, save_modified=False)
         all_labels += labels
         all_preds += preds
         all_spreds += s_preds

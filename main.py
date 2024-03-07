@@ -2,6 +2,7 @@ from llm import *
 from utils import *
 from image2text import cogvlm
 import argparse
+from accelerate import init_empty_weights, infer_auto_device_map, load_checkpoint_and_dispatch
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -22,13 +23,14 @@ def main():
     print(args)
 
     if args.induct:
+
         cog_model = AutoModelForCausalLM.from_pretrained(
             'THUDM/cogvlm-chat-hf',
             torch_dtype=torch.bfloat16,
             low_cpu_mem_usage=True,
-            device_map='auto',
+            # device_map='auto',
             trust_remote_code=True
-        ).eval()
+        ).to(device).eval()
 
         #Rule generation:
         objects_list = []

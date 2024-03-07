@@ -1,4 +1,4 @@
-**Anomaly Human Activities:**
+**Rules for Anomaly Human Activities:**
 1. Running or jumping
 2. Using any non-walking movement such as riding a bicycle or scooter, skateboarding
 3. Moving with usual speed such as very fast or in hurry
@@ -7,12 +7,11 @@
 6. Loitering around trash bin
 7. Climbing on trees or into manhole/utility access points
 8. Tampering with manhole covers
-9. Loitering suspiciously around the trash bin
-10. Engaging in physical altercation
-11. Lingering without a clear purpose near a sensitive area
-12. Falling unexpectedly
+9. Engaging in physical altercation
+10. Lingering without a clear purpose near a sensitive area
+11. Falling unexpectedly
 
-**Anomaly Non-Human Objects:**
+**Rules for Anomaly Non-Human Objects:**
 1. Missing, removed, or ajar manhole covers
 2. Ground transportations such as vehicles, vans, bicycles.
 3. Unattended bags or objects (security threat)

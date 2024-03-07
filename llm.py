@@ -1,8 +1,5 @@
 # Load model directly
 from transformers import AutoTokenizer, AutoModelForCausalLM, TextStreamer
-import numpy as np
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2"
 import torch
 from utils import *
 from collections import Counter
@@ -14,8 +11,8 @@ np.random.seed(2024)
 torch.manual_seed(2024)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-for i in range(torch.cuda.device_count()):
-    print(f"Device {i}: {torch.cuda.get_device_name(i)}")
+# for i in range(torch.cuda.device_count()):
+#     print(f"Device {i}: {torch.cuda.get_device_name(i)}")
 
 EXPRESSION_LIST = [
     "certain", "almost certain", "highly likely", "very good chance",
@@ -176,9 +173,10 @@ def gpt_rule_correction(objects, n, data_full_name):
                                                 2.
                                                 '''},
             {"role": "user",
-             "content": f"Now you are given {n} independent sets of rules as the sublists of {objects}. What rules for Anomaly and Normal do you get? Think step by step, reply following the above format, start from an abstract concept and then generalize to concrete activities or objects."},
+             "content": f"Now you are given {n} independent sets of rules as the sublists of {objects}. What rules for Anomaly and Normal do you get? Think step by step, reply following the above format."},
         ]
     )
+    # ', start from an abstract concept and then generalize to concrete activities or objects.'
     print('=====> Organized Rules:')
     print(response.choices[0].message.content)
     return response.choices[0].message.content
@@ -249,8 +247,9 @@ def mixtral_double_deduct(data, desc_path, rule_path, tokenizer, model, labels):
             text = f'''You will be given an description of scene, you task is to double check my initial anomaly detection result based on the rules. The rules are:
                         {rule}\n\n
                         My initial result is {ini_answer}\n
-                        First, what is your best answer? Answer: anomaly, if you also find {anomaly_keyword[0]}! otherwise normal.>\n\n
-                        Second, describe how likely it is that your answer is correct as one of the following expressions: ${EXPRESSION_LIST}. \nConfidence: <description of confidence, without any extra commentary whatsoever; just a short phrase!>\n\n
+                        First, if human activity present, which rule is matching? List the rule category, e.g., normal or anomaly, with number.\n\n
+                        Second, if non-human object present, which rule is matching? List the rule category, e.g., normal or anomaly, with number.\n\n
+                        Third, are the human activities or non-human objects anomaly? Answer: anomaly, if you also find {anomaly_keyword[0]} or ANY anomaly rule (even if only one, no matter human activities or non-human objects) matches, otherwise answer: normal.\n\n
                         Now you are given the scene {obj}, think step by step.'''
 
         else:
@@ -258,8 +257,9 @@ def mixtral_double_deduct(data, desc_path, rule_path, tokenizer, model, labels):
             text = f'''You will be given an description of scene, you task is to double check my initial anomaly detection result based on the rules. The rules are:
                         {rule}\n\n
                         My initial result is {ini_answer}\n
-                        First, what is your best answer? Answer: anomaly, if ANY anomaly rule (even if only one, no matter human activities or non-human objects) matches, otherwise answer: normal.>\n\n
-                        Second, describe how likely it is that your answer is correct as one of the following expressions: ${EXPRESSION_LIST}. \nConfidence: <description of confidence, without any extra commentary whatsoever; just a short phrase!>\n\n
+                        First, if human activity present, which rule is matching? List the rule category, e.g., normal or anomaly, with number.\n\n
+                        Second, if non-human object present, which rule is matching? List the rule category, e.g., normal or anomaly, with number.\n\n
+                        Third, are the human activities or non-human objects anomaly? Answer: anomaly, if ANY anomaly rule (even if only one, no matter human activities or non-human objects) matches, otherwise answer: normal.\n\n
                         Now you are given the scene {obj}, think step by step.'''
 
         inputs = tokenizer(text, return_tensors="pt").to(device)

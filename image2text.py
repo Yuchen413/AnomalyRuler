@@ -1,6 +1,4 @@
 import torch
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2"
 from transformers import LlamaTokenizer, AutoProcessor, AutoModelForCausalLM, OwlViTProcessor, OwlViTForObjectDetection,InstructBlipProcessor, InstructBlipForConditionalGeneration, Blip2Processor, Blip2ForConditionalGeneration
 from tqdm import tqdm
 from utils import *
