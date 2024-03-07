@@ -235,8 +235,6 @@ def mixtral_deduct(data, desc_path, rule_path, tokenizer, model, labels):
 
 def mixtral_double_deduct(data, desc_path, rule_path, tokenizer, model, labels):
     preds = []
-    probs = []
-    scores = []
     saved_result = pd.DataFrame(columns=['answer', 'label', 'pred', 'probability', 'score'])
     rule = open(rule_path, "r").read()
     objects_list = read_line(desc_path)
@@ -267,33 +265,17 @@ def mixtral_double_deduct(data, desc_path, rule_path, tokenizer, model, labels):
         answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
         print_out = str(obj)+find_text_after(answer, 'think step by step.')
         pred = 1 if ini_pred[0] == 1 else post_process(print_out)
-        prob = get_anomaly_score(print_out)
         preds.append(pred)
-        probs.append(prob)
-        if pred == 1:
-            score = prob
-        else:
-            score = float("{:.2f}".format(1-prob))
-        scores.append(score)
         print(f'----------------------------------------------------------------------------------------------------------------------------')
         print(pred)
-        print(score)
         print(print_out)
         saved_result = saved_result._append({'answer': print_out,
                     'label': labels[index],
-                    'pred': pred,
-                    'probability': prob,
-                    'score': score},
+                    'pred': pred},
                      ignore_index=True)
     saved_result.to_csv(f"results/{data}/{desc_path.split('/')[-1].split('.')[0]}.csv", index=False)
-    print(f'Frequency of Probabilities: {Counter(probs)}')
-    print(f'Frequency of Anomaly scores: {Counter(scores)}')
     print(f'ACC: {accuracy_score(labels, preds)}')
     print(f'Precision: {precision_score(labels, preds)}')
     print(f'Recall: {recall_score(labels, preds)}')
-    try:
-        print(f'AUC: {roc_auc_score(labels, scores)}')
-    except Exception as e:
-        print(f"An error occurred: {e}. Setting AUC to 0.0.")
-    return preds, scores, probs
+    return preds
 

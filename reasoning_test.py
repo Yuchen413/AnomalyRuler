@@ -11,31 +11,7 @@ for i in range(torch.cuda.device_count()):
     print(f"Device {i}: {torch.cuda.get_device_name(i)}")
 
 labels = read_txt_to_one_list('SHTech/test_100_choices_answer.txt')
-print(sorted(get_all_paths('SHTech/test_50_1')))
 
-def reason_mistral(choices, desc_path, rule_path):
-    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-    model = AutoModelForCausalLM.from_pretrained(model_id, low_cpu_mem_usage=True, torch_dtype=torch.float16,
-                                                     device_map='auto').eval()
-    preds = []
-    rule = open(rule_path, "r").read()
-    objects_list = read_line(desc_path)
-    choices_list = read_line(choices)
-    for index, obj in enumerate(objects_list):
-        text = f'''You will be given an description of scene and four choices. Your task is to answer the correct choice based on the rules {rule}\n\n
-                    Description: {obj[0]}\n
-                    Choices: {choices_list[index][0]}\n
-                    Choose just one correct answer from the options and output only the option without any explanation, please Answer:'''
-        inputs = tokenizer(text, return_tensors="pt").to(device)
-        outputs = model.generate(**inputs, max_new_tokens=1000)
-        answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        print(answer)
-        print_out = find_text_after(answer, 'please Answer:')
-        print(print_out.split('.')[0])
-        preds.append(print_out.split('.')[0].strip())
-
-    return preds
 
 def reason_gpt(choices, desc_path, rule_path):
     client = OpenAI(api_key="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")
@@ -129,19 +105,14 @@ def reason_gpt4v(choices):
     return preds
 
 
-# predicted_labels = reason_mistral('SHTech/test_100_choices.txt', 'SHTech/test_100_cogvlm_1_0.txt', 'rule/rule_SHTech.txt'
-# predicted_labels = reason_gpt('SHTech/test_100_choices.txt', 'SHTech/test_100_cogvlm_1_0.txt', 'rule/rule_SHTech.txt')
-#
 
+predicted_labels = reason_gpt('SHTech/test_100_choices.txt', 'SHTech/test_100_cogvlm_1_0.txt', 'rule/rule_SHTech.txt')
 # predicted_labels = reason_gpt4v('SHTech/test_100_choices.txt')
-
-
-predicted_labels = read_txt_to_one_list('SHTech/test_100_choices_gpt4v_no_rule.txt')
 correct_predictions_incl_x = sum(1 for gt, pred in zip(labels, predicted_labels) if gt == pred)
 total_predictions_incl_x = len(labels)
 accuracy_incl_x = correct_predictions_incl_x / total_predictions_incl_x
 
-# Calculate accuracy excluding 'X' labels
+# Calculate accuracy excluding 'X' labels (indicate ground-truth percpetion error)
 correct_predictions_excl_x = sum(1 for gt, pred in zip(labels, predicted_labels) if gt == pred and gt != 'X')
 total_predictions_excl_x = sum(1 for gt in labels if gt != 'X')
 accuracy_excl_x = correct_predictions_excl_x / total_predictions_excl_x

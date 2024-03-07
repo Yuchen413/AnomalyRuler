@@ -6,9 +6,6 @@ import shutil
 import torch.nn as nn
 from PIL import Image
 import re
-# import nltk
-# from nltk.tokenize import word_tokenize
-# from nltk.corpus import wordnet
 from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, recall_score
 
 np.random.seed(2024)
@@ -215,30 +212,3 @@ def read_and_process_file(file_path = 'SHTech/object_data/train_100_0_vicuna-7b-
             output_file.write(line.strip() + '\n')
 
     return unique_content
-
-
-def get_wordnet_pos(treebank_tag):
-    '''
-    #Ensure NLTK resources are downloaded (this needs to be done once)
-    nltk.download('punkt')
-    nltk.download('averaged_perceptron_tagger')
-    nltk.download('wordnet')
-    '''
-    if treebank_tag.startswith('V'):
-        return wordnet.VERB
-    return None
-
-
-
-def read_and_process_file(content):
-
-    # Tokenize and tag words in the content
-    tokens = word_tokenize(content)
-    tagged = nltk.pos_tag(tokens)
-
-    # Filter for verbs ending with 'ing'
-    verbs_with_ing = [word for word, tag in tagged if get_wordnet_pos(tag) == wordnet.VERB and word.endswith('ing')]
-
-    # Removing redundant parts
-    unique_verbs = list(set(verbs_with_ing))
-    return ', '.join(unique_verbs)

@@ -183,7 +183,7 @@ def evaluate(file_path, labels, output_file_path, save_modified):
     scores = pd.Series(s_preds).ewm(alpha = threshold, adjust=True).mean()
 
     if save_modified == True:
-        modified_texts = modify_text(preds, s_preds, keyword_list, text_lines, window_size=20)
+        modified_texts = modify_text(preds, s_preds, keyword_list, text_lines, window_size=10)
         with open(output_file_path, 'w') as file:
             for inner_list in modified_texts:
                 file.write(inner_list + '\n')
