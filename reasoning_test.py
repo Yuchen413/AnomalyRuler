@@ -12,9 +12,11 @@ for i in range(torch.cuda.device_count()):
 
 labels = read_txt_to_one_list('SHTech/test_100_choices_answer.txt')
 
+# OpenAI API Key
+key = "your api key"
 
 def reason_gpt(choices, desc_path, rule_path):
-    client = OpenAI(api_key="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")
+    client = OpenAI(api_key=key)
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4"]
     model = model_list[2]
     preds = []

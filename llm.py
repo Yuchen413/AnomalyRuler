@@ -10,6 +10,9 @@ from majority_smooth import cluster_keyword
 np.random.seed(2024)
 torch.manual_seed(2024)
 
+# OpenAI API Key
+key = "your api key"
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
 # for i in range(torch.cuda.device_count()):
 #     print(f"Device {i}: {torch.cuda.get_device_name(i)}")
@@ -111,7 +114,7 @@ def solar():
 
 
 def gpt_induction(objects,data_full_name):
-    client = OpenAI(api_key="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")
+    client = OpenAI(api_key=key)
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
     model = model_list[3]
     # objects = read_line(txt_path)
@@ -147,7 +150,7 @@ def gpt_induction(objects,data_full_name):
 
 
 def gpt_rule_correction(objects, n, data_full_name):
-    client = OpenAI(api_key="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")
+    client = OpenAI(api_key=key)
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
     model = model_list[3]
     response = client.chat.completions.create(
