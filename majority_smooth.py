@@ -169,8 +169,6 @@ def evaluate(file_path, labels, output_file_path, save_modified):
     # Initial labels using keyword in rules
     text_lines = read_file(file_path)
     preds, keyword_list, _ = cluster_keyword(text_lines)
-    # print(np.asarray(labels))
-    # print(np.asarray(preds))
 
     # First-time EMA to smooth the preds with a more sensitive way
     ema_smoothed_data = pd.Series(preds).ewm(alpha = 0.33, adjust=True).mean()
@@ -226,7 +224,16 @@ def main():
         all_scores += scores
         all_ori_scores += ori_scores
 
+    count = 0
+
+    # Iterate through the lists and count the occurrences
+    for p, s, l in zip(all_preds, all_spreds, all_labels):
+        if l == 1 and p == 1 and s == 0:
+            count += 1
+
     print(f"======================ALL DATA========================>  ")
+    print(count)
+    print(f'Percentage: {count/len(all_spreds)}')
     print(f'Ori ACC: {accuracy_score(all_labels, all_preds)}')
     print(f'Ori Precision: {precision_score(all_labels, all_preds)}')
     print(f'Ori Recall: {recall_score(all_labels, all_preds)}')

@@ -27,14 +27,12 @@ def reason_gpt(choices, desc_path, rule_path):
         response = client.chat.completions.create(
             model=model,
             messages=[
-                # {"role": "system",
-                #  "content": f"You will be given an description of scene and four choices. Your task is to answer the correct choice based on the rules. The rules are: {rule}"},
                 {"role": "system",
-                 "content": f"You will be given an description of scene and four choices. Your task is to answer the correct choice"},
+                 "content": f"You will be given an description of scene and four choices. Your task is to answer the correct choice based on the rules. The rules are: {rule}"},
                 {"role": "user",
                  "content": f'''Description: {obj[0]}\n
                     Choices: {choices_list[index][0]}\n
-                    Choose just one correct answer from the options (A, B, C, or D) and output without any explanation, please Answer:'''},
+                    Choose just one correct answer from the options (A, B, C, or D) and output without any explanation. Please Answer:'''},
             ]
         )
         print(response.choices[0].message.content)
