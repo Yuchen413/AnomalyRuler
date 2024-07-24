@@ -1,6 +1,6 @@
 # Follow the Rules: Reasoning for Video Anomaly Detection with Large Language Model (ECCV'24)
 
-This is the official implementation for paper: Follow the Rules: Reasoning for Video Anomaly Detection with Large Language Model.
+This is the official implementation for paper: [Follow the Rules: Reasoning for Video Anomaly Detection with Large Language Model](https://www.arxiv.org/pdf/2407.10299).
 
 ## Description
 
@@ -18,8 +18,43 @@ pip install torch==2.1.0 torchvision==0.16.0 transformers==4.35.0 accelerate==0.
 pip installpandas pillow openai scikit-learn protobuf
 ```
 
+## Dataset
+Download the datasets and put the {train} and {test} folder under the {dataset_name} folder, for example:
+
+```
++-- SHTech
+|   +-- train
+|   +-- test
+    |   +-- 01_0014
+        |   +-- 000.jpg
+        |   +-- ...
+```
+Download links: 
+* [SHTech]()
+* [ped2 and avenue](https://github.com/feiyuhuahuo/Anomaly_Prediction?tab=readme-ov-file)
+* [UBNormal](https://github.com/lilygeorgescu/UBnormal)
+
 ## Run
-Run the script within run.sh in order
+
+### Step 1: Visual Perception
+```
+python image2text.py --data='SHTech'
+```
+
+### Step 2: Rule Generation + Rule Aggregation
+```angular2html
+python main.py --data='SHTech' --induct --b=1 --bs=10
+```
+
+### Step 3: Perception Smoothing
+```angular2html
+python majority_smooth.py --data='SHTech'
+```
+
+### Step 4: Robust Reasoning
+```angular2html
+python main.py --data='SHTech' --deduct
+```
 
 
 ## Citation

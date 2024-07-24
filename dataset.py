@@ -17,7 +17,6 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 for i in range(torch.cuda.device_count()):
     print(f"Device {i}: {torch.cuda.get_device_name(i)}")
 
-
 class UBNormal_VideoOrganizer:
     '''
     Usage:
@@ -29,10 +28,7 @@ class UBNormal_VideoOrganizer:
         self.train_folder = train_folder
         self.test_normal_folder = test_normal_folder
         self.test_abnormal_folder = test_abnormal_folder
-        # Create destination folders if they do not exist
-        # os.makedirs(self.train_folder, exist_ok=True)
-        # os.makedirs(self.test_normal_folder, exist_ok=True)
-        # os.makedirs(self.test_abnormal_folder, exist_ok=True)
+
 
     def read_video_list(self, file_path):
         with open(file_path, 'r') as file:

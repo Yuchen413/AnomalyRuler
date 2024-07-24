@@ -173,15 +173,15 @@ def evaluate(file_path, labels, output_file_path, save_modified):
     # First-time EMA to smooth the preds with a more sensitive way
     ema_smoothed_data = pd.Series(preds).ewm(alpha = 0.33, adjust=True).mean()
     threshold = ema_smoothed_data.mean()
-    s_preds = ema_majority_smooth(ema_smoothed_data, threshold, window_size=10)
+    s_preds = ema_majority_smooth(ema_smoothed_data, threshold, window_size=1)
 
     if threshold ==0:
-        threshold += 0.00001
+        threshold += 0.0000001
     # Second-time EMA to get the auc score
     scores = pd.Series(s_preds).ewm(alpha = threshold, adjust=True).mean()
 
     if save_modified == True:
-        modified_texts = modify_text(preds, s_preds, keyword_list, text_lines, window_size=10)
+        modified_texts = modify_text(preds, s_preds, keyword_list, text_lines, window_size=1)
         with open(output_file_path, 'w') as file:
             for inner_list in modified_texts:
                 file.write(inner_list + '\n')
@@ -224,16 +224,7 @@ def main():
         all_scores += scores
         all_ori_scores += ori_scores
 
-    count = 0
-
-    # Iterate through the lists and count the occurrences
-    for p, s, l in zip(all_preds, all_spreds, all_labels):
-        if l == 1 and p == 1 and s == 0:
-            count += 1
-
     print(f"======================ALL DATA========================>  ")
-    print(count)
-    print(f'Percentage: {count/len(all_spreds)}')
     print(f'Ori ACC: {accuracy_score(all_labels, all_preds)}')
     print(f'Ori Precision: {precision_score(all_labels, all_preds)}')
     print(f'Ori Recall: {recall_score(all_labels, all_preds)}')
