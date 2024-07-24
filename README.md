@@ -1,6 +1,6 @@
 # Follow the Rules: Reasoning for Video Anomaly Detection with Large Language Model (ECCV'24)
 
-This is the official implementation for paper: [Follow the Rules: Reasoning for Video Anomaly Detection with Large Language Model](https://www.arxiv.org/pdf/2407.10299).
+This is the implementation for paper: [Follow the Rules: Reasoning for Video Anomaly Detection with Large Language Model](https://www.arxiv.org/pdf/2407.10299).
 
 ## Description
 
@@ -15,7 +15,7 @@ pip install torch==2.1.0 torchvision==0.16.0 transformers==4.35.0 accelerate==0.
 ```
 
 ```angular2html
-pip installpandas pillow openai scikit-learn protobuf
+pip install pandas pillow openai scikit-learn protobuf
 ```
 
 ## Dataset
