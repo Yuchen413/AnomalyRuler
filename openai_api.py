@@ -2,10 +2,50 @@ from openai import OpenAI
 from utils import *
 import base64
 import re
+import json
 
 # OpenAI API Key
-key = "your api key"
+key = "Your API"
 
+
+def keyword_extract(rule_path):
+    client = OpenAI(api_key=key)
+    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4"]
+    model = model_list[3]
+    with open(rule_path, 'r', encoding='utf-8') as file:
+        rules = file.read()
+    # rules = read_txt_to_one_list(rule_path)
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system",
+             "content": f'''You will be given a set of rules for detecting abnormal activities and objects; Please:
+              1. extract the anomaly activities using "ing" verbs, and anomaly non-human objects using nouns. 
+              2. Remove the nouns also can be found in **Rules for Normal Non-Human Objects:**.
+              3. Remove the neutral nouns such as 'objects', 'items'
+             The output should be in the format: [anomaly object1 , ... , anomaly activity1, anomaly activity2, ...]. 
+             Provide a combined Python list with each represented by a single word.'''},
+            {"role": "user",
+             "content": f'''Now you are given {rules}, please only output the Python list without any additional descriptions. Thinks step by step.'''},
+        ]
+    )
+    marker = "**Rules for Normal Non-Human Objects:**"
+    raw_response = response.choices[0].message.content
+    start_index = rules.find(marker)
+    if start_index != -1:
+        start_index += len(marker)
+        extracted_text = rules[start_index:].strip()
+    else:
+        extracted_text = ""
+    words_in_text = re.findall(r'\b\w+\b', extracted_text.lower())
+    raw_response = json.loads(raw_response)
+    words_in_text = [item.lower() for item in words_in_text]
+    raw_response = [item.lower() for item in raw_response]
+    post_response = [item for item in raw_response if item not in words_in_text]
+    print(post_response)
+    return post_response
+
+# keyword_extract('rule/rule_SHTech.txt')
 def baseline():
     client = OpenAI(api_key=key)
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo"]

@@ -4,6 +4,7 @@ from utils import *
 import re
 from collections import Counter
 import argparse
+from openai_api import keyword_extract
 
 def read_file(file_path):
     with open(file_path, 'r') as file:
@@ -18,31 +19,42 @@ def cluster_kmeans(sentences, num_clusters=2):
     kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(X)
     return kmeans.cluster_centers_, kmeans.labels_
 
-def cluster_keyword(text_lines):
-    anomaly_from_rule = [
-    "trolley",
-    "cart",
-    "luggage",
-    "bicycle",
-    "skateboard",
-    "scooter",
-    "vehicles",
-    "vans",
-    "accident",
-    "running",
-    "jumping",
-    "riding",
-    "skateboarding",
-    "scooting",
-    "lying",
-    "falling",
-    "bending",
-    "fighting",
-    "pushing",
-    "loitering",
-    "climbing",
-    "tampering",
-    "lingering"]
+def anomaly_keywords(rule_path = 'rule/rule_SHTech.txt', regenerate_keyword = False):
+    '''
+    The below anomaly keywords are extracted once and used for the experiment in the paper,
+    you can also extract from your rules with the below function.
+    '''
+    if regenerate_keyword == False:
+        anomaly_from_rule = [
+        "trolley",
+        "cart",
+        "luggage",
+        "bicycle",
+        "skateboard",
+        "scooter",
+        "vehicles",
+        "vans",
+        "accident",
+        "running",
+        "jumping",
+        "riding",
+        "skateboarding",
+        "scooting",
+        "lying",
+        "falling",
+        "bending",
+        "fighting",
+        "pushing",
+        "loitering",
+        "climbing",
+        "tampering",
+        "lingering"]
+    else:
+        anomaly_from_rule = keyword_extract(rule_path)
+    return anomaly_from_rule
+
+
+def cluster_keyword(text_lines, anomaly_from_rule):
     preds = []
     anomaly_word = []
     for line in text_lines:
@@ -77,7 +89,7 @@ def majority_smooth(data, window_size=20, edge_region_size=None):
         else:
             # Regular processing for central part
             start = i
-            end = i + window_size
+            end = i + window_sizez
             window = padded_data[start:end]
 
         # Apply majority rule
@@ -165,10 +177,10 @@ def modify_text(preds, s_preds, keyword_list, text_list, window_size):
     return modified_text_list
 
 
-def evaluate(file_path, labels, output_file_path, save_modified):
+def evaluate(file_path, labels, output_file_path, save_modified,anomaly_from_rule):
     # Initial labels using keyword in rules
     text_lines = read_file(file_path)
-    preds, keyword_list, _ = cluster_keyword(text_lines)
+    preds, keyword_list, _ = cluster_keyword(text_lines, anomaly_from_rule=anomaly_from_rule)
 
     # First-time EMA to smooth the preds with a more sensitive way
     ema_smoothed_data = pd.Series(preds).ewm(alpha = 0.33, adjust=True).mean()
@@ -210,6 +222,7 @@ def main():
     all_spreds = []
     all_scores = []
     all_ori_scores = []
+    anomaly_from_rule = anomaly_keywords(rule_path='rule/rule_SHTech.txt')
     for item in entries:
         name = item.split('.')[0]
         input_file_path = f'{data_name}/test_frame_description/{name}.txt'  # Path to your input text file
@@ -217,7 +230,7 @@ def main():
         if not os.path.exists(os.path.dirname(output_file_path)):
             os.makedirs(os.path.dirname(output_file_path))
         labels = pd.read_csv(f'{data_name}/test_frame/{name}.csv').iloc[:, 1].tolist()
-        preds, s_preds, scores, ori_scores = evaluate(input_file_path, labels, output_file_path, save_modified=False)
+        preds, s_preds, scores, ori_scores = evaluate(input_file_path, labels, output_file_path, save_modified=False, anomaly_from_rule=anomaly_from_rule)
         all_labels += labels
         all_preds += preds
         all_spreds += s_preds

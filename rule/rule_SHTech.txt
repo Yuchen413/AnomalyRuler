@@ -1,6 +1,6 @@
 **Rules for Anomaly Human Activities:**
 1. Running or jumping
-2. Using any non-walking movement such as riding a bicycle or scooter, skateboarding
+2. Any non-walking movement such as riding a bicycle or scooter, skateboarding
 3. Moving with usual speed such as very fast or in hurry
 4. Person lying or bending down on the ground
 5. Aggressive or unusual movements such as fighting or pushing
@@ -42,7 +42,7 @@
 1. Manhole covers on the ground or street
 2. Trees along the street or Plants present
 3. Trash bin in vicinity or placed beside the street
-4. Posters on glass door
+4. Posters or signs on glass door
 5. Static building with glass windows
 6. Fence along the water
 7. Pedestrian crossing markings visible
