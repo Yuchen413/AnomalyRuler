@@ -1,6 +1,6 @@
-# Follow the Rules: Reasoning for Video Anomaly Detection with Large Language Model (ECCV'24)
+# Follow the Rules: Reasoning for Video Anomaly Detection with Large Language Models (ECCV'24)
 
-This is the implementation for paper: [Follow the Rules: Reasoning for Video Anomaly Detection with Large Language Model](https://www.arxiv.org/pdf/2407.10299).
+This is the implementation for paper: [Follow the Rules: Reasoning for Video Anomaly Detection with Large Language Models](https://www.arxiv.org/pdf/2407.10299).
 
 ## Description
 
@@ -61,7 +61,7 @@ python main.py --data='SHTech' --deduct
 
 ```angular2html
 @inproceedings{yang2024anomalyruler,
-    title={Follow the Rules: Reasoning for Video Anomaly Detection with Large Language Model},
+    title={Follow the Rules: Reasoning for Video Anomaly Detection with Large Language Models},
     author={Yuchen Yang and Kwonjoon Lee and Behzad Dariush and Yinzhi Cao and Shao-Yuan Lo},
     year={2024},
     booktitle={Proceedings of the European Conference on Computer Vision (ECCV)}
