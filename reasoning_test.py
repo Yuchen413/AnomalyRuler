@@ -52,7 +52,7 @@ def reason_gpt4v(choices):
     # OpenAI API Key
     preds = []
     model = "gpt-4-vision-preview"
-    api_key = "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"
+    api_key = key
 
 
     # Function to encode the image
