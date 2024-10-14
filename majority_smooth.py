@@ -246,7 +246,7 @@ def main():
     print(f'Smooth ACC: {accuracy_score(all_labels, all_spreds)}')
     print(f'Smooth Precision: {precision_score(all_labels, all_spreds)}')
     print(f'Smooth Recall: {recall_score(all_labels, all_spreds)}')
-    print(f'AUC: {roc_auc_score(all_labels, all_scores)}')
+    print(f'AUC for AnomalyRuler-base: {roc_auc_score(all_labels, all_scores)}')
 
 if __name__ == "__main__":
     main()
