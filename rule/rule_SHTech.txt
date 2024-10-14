@@ -14,7 +14,7 @@
 **Rules for Anomaly Non-Human Objects:**
 1. Missing, removed, or ajar manhole covers
 2. Ground transportations such as vehicles, vans, bicycles.
-3. Unattended bags or objects (security threat)
+3. Unattended objects (security threat)
 4. Unusual objects (vehicles, large unattended luggage, etc.)
 5. Unauthorized posters or signs
 6. Damaged manhole cover or trees

@@ -3,9 +3,11 @@ from utils import *
 import base64
 import re
 import json
+import inflect
+p = inflect.engine()
 
 # OpenAI API Key
-key = "Your API"
+key = "YOUR KEY"
 
 
 def keyword_extract(rule_path):
@@ -42,7 +44,7 @@ def keyword_extract(rule_path):
     words_in_text = [item.lower() for item in words_in_text]
     raw_response = [item.lower() for item in raw_response]
     post_response = [item for item in raw_response if item not in words_in_text]
-    print(post_response)
+    post_response =  [p.singular_noun(i) or i for i in post_response]
     return post_response
 
 # keyword_extract('rule/rule_SHTech.txt')

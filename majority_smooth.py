@@ -6,6 +6,7 @@ from collections import Counter
 import argparse
 from openai_api import keyword_extract
 
+
 def read_file(file_path):
     with open(file_path, 'r') as file:
         lines = file.readlines()
@@ -19,7 +20,7 @@ def cluster_kmeans(sentences, num_clusters=2):
     kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(X)
     return kmeans.cluster_centers_, kmeans.labels_
 
-def anomaly_keywords(rule_path = 'rule/rule_SHTech.txt', regenerate_keyword = False):
+def anomaly_keywords(rule_path = 'rule/rule_SHTech.txt', regenerate_keyword = True):
     '''
     The below anomaly keywords are extracted once and used for the experiment in the paper,
     you can also extract from your rules with the below function.
@@ -30,7 +31,6 @@ def anomaly_keywords(rule_path = 'rule/rule_SHTech.txt', regenerate_keyword = Fa
         "cart",
         "luggage",
         "bicycle",
-        "skateboard",
         "scooter",
         "vehicles",
         "vans",
@@ -51,6 +51,7 @@ def anomaly_keywords(rule_path = 'rule/rule_SHTech.txt', regenerate_keyword = Fa
         "lingering"]
     else:
         anomaly_from_rule = keyword_extract(rule_path)
+        print('Anomaly Keyword:', anomaly_from_rule)
     return anomaly_from_rule
 
 
@@ -89,7 +90,7 @@ def majority_smooth(data, window_size=20, edge_region_size=None):
         else:
             # Regular processing for central part
             start = i
-            end = i + window_sizez
+            end = i + window_size
             window = padded_data[start:end]
 
         # Apply majority rule
@@ -197,13 +198,13 @@ def evaluate(file_path, labels, output_file_path, save_modified,anomaly_from_rul
         with open(output_file_path, 'w') as file:
             for inner_list in modified_texts:
                 file.write(inner_list + '\n')
-    print(f"======================{file_path.split('/')[-1].split('.')[0]}========================>  ")
-    print(f'Ori ACC: {accuracy_score(labels, preds)}')
-    print(f'Ori Precision: {precision_score(labels, preds)}')
-    print(f'Ori Recall: {recall_score(labels, preds)}')
-    print(f'Soomth ACC: {accuracy_score(labels, s_preds)}')
-    print(f'Soomth Precision: {precision_score(labels, s_preds)}')
-    print(f'Soomth Recall: {recall_score(labels, s_preds)}')
+    # print(f"======================{file_path.split('/')[-1].split('.')[0]}========================>  ")
+    # print(f'Ori ACC: {accuracy_score(labels, preds)}')
+    # print(f'Ori Precision: {precision_score(labels, preds)}')
+    # print(f'Ori Recall: {recall_score(labels, preds)}')
+    # print(f'Soomth ACC: {accuracy_score(labels, s_preds)}')
+    # print(f'Soomth Precision: {precision_score(labels, s_preds)}')
+    # print(f'Soomth Recall: {recall_score(labels, s_preds)}')
     return preds, list(s_preds), list(scores), list(ema_smoothed_data)
 
 def parse_arguments():
