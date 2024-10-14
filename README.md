@@ -50,6 +50,7 @@ python main.py --data='SHTech' --induct --b=1 --bs=10
 ```angular2html
 python majority_smooth.py --data='SHTech'
 ```
+PS: You can also start here to reuse the rules and simply reproduce the results.
 
 ### Step 4: Robust Reasoning
 ```angular2html
