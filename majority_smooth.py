@@ -20,7 +20,7 @@ def cluster_kmeans(sentences, num_clusters=2):
     kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(X)
     return kmeans.cluster_centers_, kmeans.labels_
 
-def anomaly_keywords(rule_path = 'rule/rule_SHTech.txt', regenerate_keyword = True):
+def anomaly_keywords(rule_path = 'rule/rule_SHTech.txt', regenerate_keyword = False):
     '''
     The below anomaly keywords are extracted once and used for the experiment in the paper,
     you can also extract from your rules with the below function.
