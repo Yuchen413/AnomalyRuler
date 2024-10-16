@@ -11,21 +11,20 @@
 10. Lingering without a clear purpose near a sensitive area
 11. Falling unexpectedly
 
-**Rules for Anomaly Non-Human Objects:**
+**Rules for Anomaly Environmental Objects:**
 1. Missing, removed, or ajar manhole covers
 2. Ground transportations such as vehicles, vans, bicycles.
 3. Unattended objects (security threat)
 4. Unusual objects (vehicles, large unattended luggage, etc.)
-5. Unauthorized posters or signs
-6. Damaged manhole cover or trees
-7. Abandoned items in a public area
-8. Yellow objects (when not commonly seen)
-9. Graffiti on building windows or vandalism to a fence
-10. Obstructions on pedestrian crossing
-11. Fire hydrant spraying water without presence of emergency services
-12. Unidentified objects near the tall structure
-13. Smoke or fire coming from a utility access point
-14. Objects thrown or falling from a height
+5. Damaged manhole cover or trees
+6. Abandoned items in a public area
+7. Yellow objects (when not commonly seen)
+8. Graffiti on building windows or vandalism to a fence
+9. Obstructions on pedestrian crossing
+10. Fire hydrant spraying water without presence of emergency services
+11. Unidentified objects near the tall structure
+12. Smoke or fire coming from a utility access point
+13. Objects thrown or falling from a height
 
 **Rules for Normal Human Activities:**
 1. Walking alone or with another person
@@ -38,7 +37,7 @@
 8. Walking on pedestrian crossing
 9. Sitting on bench or ground
 
-**Rules for Normal Non-Human Objects:**
+**Rules for Normal Environmental Objects:**
 1. Manhole covers on the ground or street
 2. Trees along the street or Plants present
 3. Trash bin in vicinity or placed beside the street

@@ -7,6 +7,11 @@ import torch.nn as nn
 from PIL import Image
 import re
 from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, recall_score
+import torch
+
+from transformers import pipeline
+device = 0 if torch.cuda.is_available() else -1
+classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device = 0)
 
 np.random.seed(2024)
 
@@ -131,29 +136,41 @@ def find_substring_indices(main_string, substring):
         index = main_string.find(substring, index + 1)
     return indices
 
-def post_process(text):
-    key_phrases = ['normal', 'anomaly', 'anomalous']
-    patterns = [':', 'category', 'answer', 'answer is', 'guess']
-    text = text.lower()
+# def post_process(text):
+#     key_phrases = ['normal', 'anomaly', 'anomalous']
+#     patterns = [':', 'category', 'answer', 'answer is', 'guess']
+#     text = text.lower()
+#
+#     count = 0
+#     for pattern in patterns:
+#         answer_indices = find_substring_indices(text, pattern)
+#         for answer_index in answer_indices:
+#             # Extract the substring starting from the pattern
+#             substring = text[answer_index + len(pattern):]
+#             # Split the substring into words and return the first one that contains a key phrase
+#             # words = substring.split('.')[0]
+#             words = substring.split('\n')[0] if substring.find('\n') < substring.find('.') or substring.find('.') == -1 else substring.split('.')[0]
+#             # print(words)
+#             if 'are the human activities or non-human objects anomaly or normal?' not in words:
+#                 for phrase in key_phrases:
+#                     if phrase in words:
+#                         if phrase in ['anomaly', 'anomalous']:
+#                             count+=1
+#     if count>0:
+#         return 1
+#     else: return 0
 
-    count = 0
-    for pattern in patterns:
-        answer_indices = find_substring_indices(text, pattern)
-        for answer_index in answer_indices:
-            # Extract the substring starting from the pattern
-            substring = text[answer_index + len(pattern):]
-            # Split the substring into words and return the first one that contains a key phrase
-            # words = substring.split('.')[0]
-            words = substring.split('\n')[0] if substring.find('\n') < substring.find('.') or substring.find('.') == -1 else substring.split('.')[0]
-            # print(words)
-            if 'are the human activities or non-human objects anomaly or normal?' not in words:
-                for phrase in key_phrases:
-                    if phrase in words:
-                        if phrase in ['anomaly', 'anomalous']:
-                            count+=1
-    if count>0:
-        return 1
-    else: return 0
+
+def post_process(text):
+    text = text.lower().strip()
+    # Extract the last sentence from the text
+    sentences = text.split('\n')
+    last_sentence = sentences[-2] if sentences[-1] == '' else sentences[-1]
+    result = classifier(last_sentence, candidate_labels=["normal", "anomaly"])
+    if result['labels'][0] in ['anomaly', 'anomalous']:
+        return 1  # Anomaly detected
+    else:
+        return 0  # Normal detected
 
 
 def get_anomaly_score(text):
