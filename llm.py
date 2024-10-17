@@ -116,7 +116,7 @@ def solar():
 
 def gpt_induction(objects,data_full_name):
     client = OpenAI(api_key=key)
-    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4-1106-preview" ]
+    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4" ]
     model = model_list[3]
     # objects = read_line(txt_path)
     # objects = read_txt_to_list(txt_path)
@@ -287,3 +287,47 @@ def mixtral_double_deduct(data, desc_path, rule_path, tokenizer, model, labels):
     print(f'Recall: {recall_score(labels, preds)}')
     return preds
 
+
+def gpt_double_deduction_demo(data, desc_path, rule_path):
+    '''
+    This is just an example for using GPT in deduction, have not tested on large scale dataset
+    '''
+    client = OpenAI(api_key=key)
+    model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo", "gpt-4" ]
+    model = model_list[3]
+    rule = open(rule_path, "r").read()
+    objects_list = read_line(desc_path)
+    anomaly_from_rule = anomaly_keywords()
+    for index, obj in enumerate(objects_list):
+        ini_pred, _, anomaly_keyword = cluster_keyword(obj, anomaly_from_rule)
+        if ini_pred[0] == 1:
+            ini_answer = f'Anomaly, since I found {anomaly_keyword[0]}.'
+            text = f'''You will be given an description of scene, you task is to double check my initial anomaly detection result based on the rules. The rules are:
+                        {rule}\n\n
+                        My initial result is {ini_answer}\n
+                        First, if human activity present, which rule is matching? List the rule category, e.g., normal or anomaly, with number.\n\n
+                        Second, if environmental object present, which rule is matching? List the rule category, e.g., normal or anomaly, with number.\n\n
+                        Third, are the human activities or environmental objects anomaly? Answer: anomaly, if you also find {anomaly_keyword[0]} or ANY anomaly rule (even if only one, no matter human activities or environmental objects) matches, otherwise answer: normal.\n\n
+                        Now you are given the scene {obj}, think step by step.'''
+
+        else:
+            ini_answer = f"Normal."
+            text = f'''You will be given an description of scene, you task is to double check my initial anomaly detection result based on the rules. The rules are:
+                        {rule}\n\n
+                        My initial result is {ini_answer}\n
+                        First, if human activity present, which rule is matching? List the rule category, e.g., normal or anomaly, with number.\n\n
+                        Second, if environmental object present, which rule is matching? List the rule category, e.g., normal or anomaly, with number.\n\n
+                        Third, are the human activities or environmental objects anomaly? Answer: anomaly, if ANY anomaly rule (even if only one, no matter human activities or environmental objects) matches, otherwise answer: normal.\n\n
+                        Now you are given the scene {obj}, think step by step.'''
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system",
+                 "content": f'''As a surveillance monitor for urban safety using the {data} dataset, my job to detect abnormal human activities or environmental object based on the provided rules'''},
+                {"role": "user",
+                 "content": f"{text}"},
+            ]
+        )
+        print_out = response.choices[0].message.content
+        print('=====> Results:')
+        print(print_out)

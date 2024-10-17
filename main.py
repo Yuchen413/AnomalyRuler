@@ -1,6 +1,6 @@
 from llm import *
 from utils import *
-from image2text import cogvlm
+# from image2text import cogvlm
 import argparse
 from accelerate import init_empty_weights, infer_auto_device_map, load_checkpoint_and_dispatch
 
@@ -10,6 +10,7 @@ def parse_arguments():
                         choices=['SHTech', 'avenue', 'ped2', 'UBNormal'])
     parser.add_argument('--induct', action='store_true')
     parser.add_argument('--deduct', action='store_true')
+    parser.add_argument('--gpt_deduct_demo', action='store_true')
     parser.add_argument('--b', type = int, default=10)
     parser.add_argument('--bs', type = int, default=1)
     args = parser.parse_args()
@@ -52,14 +53,11 @@ def main():
         tokenizer = AutoTokenizer.from_pretrained(model_id)
         llm_model = AutoModelForCausalLM.from_pretrained(model_id, low_cpu_mem_usage=True, torch_dtype=torch.float16,
                                                      device_map='auto').eval()
-
         entries = os.listdir(f'{data_name}/modified_test_frame_description')
         final_result = pd.DataFrame(columns=['file_name','labels','preds', 'scores', 'probs'])
-
         for item in entries:
             print(item)
             name = item.split('.')[0]
-
             labels = pd.read_csv(f'{data_name}/test_frame/{name}.csv').iloc[:, 1].tolist()
             preds = mixtral_double_deduct(data_name,f'{data_name}/modified_test_frame_description/{name}.txt',
                                                   f'rule/rule_{data_name}.txt', tokenizer, llm_model, labels=labels)
@@ -98,6 +96,16 @@ def main():
             file.write(f'Precision: {precision_score(labels_list, preds_list)}\n')
             file.write(f'Recall: {recall_score(labels_list, preds_list)}\n')
             file.write(f'AUC: {roc_auc_score(labels_list, scores_list)}\n')
+
+    if args.gpt_deduct_demo:
+        entries = os.listdir(f'{data_name}/modified_test_frame_description')
+        # entries[:1] try one file
+        for item in entries[:1]:
+            print(item)
+            name = item.split('.')[0]
+            gpt_double_deduction_demo(data_name, f'{data_name}/modified_test_frame_description/{name}.txt',
+                                          f'rule/rule_{data_name}.txt')
+
 
 if __name__ == "__main__":
     main()
