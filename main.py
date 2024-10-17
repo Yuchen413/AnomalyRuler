@@ -66,7 +66,7 @@ def main():
             # preds, scores, probs = mixtral_deduct(f'SHTech/test_100_cogvlm_1_0.txt',
             #                'rule/rule_SHTech.txt', tokenizer, llm_model, labels=labels)
 
-            scores = pd.Series(preds).ewm(alpha = 0.33, adjust=True).mean()
+            scores = pd.Series(preds).ewm(alpha = 0.1, adjust=True).mean()
             final_result = final_result._append({'file_name': name,
                                                 'labels': labels,
                                                 'preds': preds,
