@@ -15,6 +15,30 @@ classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnl
 
 np.random.seed(2024)
 
+def evaluate_from_result(folder_path):
+    '''
+    folder_path: the folder saved the deduction results
+    '''
+    labels_list = []
+    preds_list = []
+    scores_list = []
+    for filename in os.listdir(folder_path):
+        if filename.endswith(".csv"):
+            file_path = os.path.join(folder_path, filename)
+            df = pd.read_csv(file_path)
+            if 'pred' in df.columns:
+                preds = df['pred'].tolist()
+                scores = pd.Series(preds).ewm(span = 10, adjust=True).mean().tolist()
+                labels_list += df['label'].tolist()
+                preds_list += preds
+                scores_list += scores
+
+    print(f"======================ALL DATA========================>  ")
+    print(f'ACC: {accuracy_score(labels_list, preds_list)}')
+    print(f'Precision: {precision_score(labels_list, preds_list)}')
+    print(f'Recall: {recall_score(labels_list, preds_list)}')
+    print(f'AUC: {roc_auc_score(labels_list, scores_list)}')
+
 def split_list(data, size):
     # Splits 'data' into sublists of length 'size'
     return [data[i:i + size] for i in range(0, len(data), size)]
