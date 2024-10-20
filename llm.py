@@ -165,20 +165,20 @@ def gpt_rule_correction(objects, n, data_full_name):
                                         f"For the organized anomaly Rules, list all the given anomaly rules"},
             {"role": "assistant", "content": '''
                                                 **Rules for Anomaly Human Activities:
-                                                1. Non-walking movement such as riding a bicycle, scooting, skateboarding.
+                                                1. Non-walking movement: riding a bicycle, scooting, skateboarding.
                                                 2.
                                                 **Rules for Anomaly Environmental Objects:
-                                                1. Ground transportation such as vehicles, motorcycles.
+                                                1. Ground transportation: vehicles, motorcycles.
                                                 2.
                                                 **Rules for Normal Human Activities:
-                                                1. Walking with common objects such as a backpack, bag, umbrella.
+                                                1. Walking with common objects: a backpack, bag, umbrella.
                                                 2.
                                                 **Rules for Normal Environmental Objects:
-                                                1. Architectural structures such as building, bridges.
+                                                1. Architectural structures: building, bridges.
                                                 2.
                                                 '''},
             {"role": "user",
-             "content": f"Now you are given {n} independent sets of rules as the sublists of {objects}. What rules for Anomaly and Normal do you get? Think step by step, reply following the above format and examples."},
+             "content": f"Now you are given {n} independent sets of rules as the sublists of {objects}. What rules for Anomaly and Normal do you get? Think step by step, reply following the above examples."},
         ]
     )
     # ', start from an abstract concept and then generalize to concrete activities or objects.'
@@ -244,7 +244,7 @@ def mixtral_double_deduct(data, desc_path, rule_path, tokenizer, model, labels):
     saved_result = pd.DataFrame(columns=['answer', 'label', 'pred', 'dummy_pred'])
     rule = open(rule_path, "r").read()
     objects_list = read_line(desc_path)
-    anomaly_from_rule = anomaly_keywords()
+    anomaly_from_rule = np.load('rule/rule_SHTech.npy', allow_pickle=True) #This is generated and saved from the Step3
     for index, obj in enumerate(objects_list):
         ini_pred, _, anomaly_keyword = cluster_keyword(obj, anomaly_from_rule)
         if ini_pred[0] == 1:

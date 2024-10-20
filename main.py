@@ -3,6 +3,8 @@ from utils import *
 # from image2text import cogvlm
 import argparse
 from accelerate import init_empty_weights, infer_auto_device_map, load_checkpoint_and_dispatch
+import warnings
+warnings.filterwarnings("ignore")
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -46,6 +48,14 @@ def main():
             objects_list.append(objects)
             rule_list.append(gpt_induction(objects, data_full_name))
         gpt_rule_correction(rule_list, batch, data_full_name)
+        induction_help = '''
+        ==>Induction Help for generating rules by your own: Sometimes the API will not follow the exactly same format required in instructions, 
+        you can try multiple times, and adjust the format of rules if needed as in the given example rules for better performance,
+        e.g., **Rules for Anomaly Human Activities:**
+            1. 
+            2. 
+        '''
+        print(induction_help)
 
     if args.deduct:
         ## Deduction
@@ -62,10 +72,6 @@ def main():
             labels = pd.read_csv(f'{data_name}/test_frame/{name}.csv').iloc[:, 1].tolist()
             mixtral_double_deduct(data_name,f'{data_name}/modified_test_frame_description/{name}.txt',
                                                   f'rule/rule_{data_name}.txt', tokenizer, llm_model, labels=labels)
-            ### This is for 100 random test SHtech
-            # labels = [1]*50 + [0]*50
-            # preds, scores, probs = mixtral_deduct(f'SHTech/test_100_cogvlm_1_0.txt',
-            #                'rule/rule_SHTech.txt', tokenizer, llm_model, labels=labels)
 
         evaluate_from_result(f"results/{data_name}")
 
