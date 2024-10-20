@@ -7,7 +7,22 @@ import inflect
 p = inflect.engine()
 
 # OpenAI API Key
-key = "YOUR KEY"
+key = ""
+
+
+def extract_words_from_normal(rules_text, start_marker, end_marker="**Rules for"):
+    start_index = rules_text.find(start_marker)
+    if start_index != -1:
+        start_index += len(start_marker)
+        end_index = rules_text.find(end_marker, start_index)
+        if end_index == -1:
+            end_index = len(rules_text)  # If no end_marker is found, go to the end of the text
+        extracted_text = rules_text[start_index:end_index].strip()
+    else:
+        extracted_text = ""
+    words_in_text = re.findall(r'\b\w+\b', extracted_text.lower())
+    return words_in_text
+
 
 
 def keyword_extract(rule_path):
@@ -21,33 +36,44 @@ def keyword_extract(rule_path):
         model=model,
         messages=[
             {"role": "system",
-             "content": f'''You will be given a set of rules for detecting abnormal activities and objects; Please:
-              1. extract the anomaly activities using "ing" verbs, and anomaly non-human objects using nouns. 
-              2. Remove the nouns also can be found in **Rules for Normal Non-Human Objects:**.
-              3. Remove the neutral nouns such as 'objects', 'items'
-             The output should be in the format: [anomaly object1 , ... , anomaly activity1, anomaly activity2, ...]. 
+             "content": f'''You will be given a set of rules for detecting abnormal activities; Please:
+             1. Extract the "ing" verbs.
+             2. Remove verbs that do not represent a specific physical activity or motion, such as 'engaging', 'moving', 'working'...
+             3. Remove verbs that are listed as Normal Human Activities.
+             4. Add the synonyms for the left "ing" verbs.
+             The output should be in the format: [anomaly activity1, anomaly activity2, ...].
              Provide a combined Python list with each represented by a single word.'''},
             {"role": "user",
-             "content": f'''Now you are given {rules}, please only output the Python list without any additional descriptions. Thinks step by step.'''},
+             "content": f'''Now you are given {rules}, please ONLY output the Python list without ANY additional descriptions. Think step by step.'''},
         ]
     )
-    marker = "**Rules for Normal Non-Human Objects:**"
+
+    words_in_text = extract_words_from_normal(rules, "**Rules for Normal Human Activities:**") + extract_words_from_normal(rules, "**Rules for Normal Environmental Objects:**")
     raw_response = response.choices[0].message.content
-    start_index = rules.find(marker)
-    if start_index != -1:
-        start_index += len(marker)
-        extracted_text = rules[start_index:].strip()
+    print(
+        '==> Info: If you encounter anomaly results, such as 0 precision or recall, please check the raw_response from GPT within function keyword_extract(). In case the output is not formatted as a Python list, you may need to manually select the keywords and format them as a list.')
+    # print(raw_response)
+    all_lists = re.findall(r"\[.*?\]", raw_response, re.DOTALL)
+    if all_lists:
+        # Extract the last list from the matches
+        last_list_string = all_lists[-1]  # Get the last match
+        try:
+            # Replace single quotes with double quotes if necessary
+            python_list = json.loads(last_list_string.replace("'", '"'))  # Convert to Python list
+        except json.JSONDecodeError:
+            python_list = []
+            print("Error: The extracted list is not valid JSON.")
     else:
-        extracted_text = ""
-    words_in_text = re.findall(r'\b\w+\b', extracted_text.lower())
-    raw_response = json.loads(raw_response)
+        print("No list found in the raw response.")
+        python_list = []
+    customized_anomaly = ["bicycle"]  # This list is for manually adding specific anomaly keywords that you consider important. It helps make the results more stable and controllable by ensuring certain critical keywords are always included in the output.
     words_in_text = [item.lower() for item in words_in_text]
-    raw_response = [item.lower() for item in raw_response]
-    post_response = [item for item in raw_response if item not in words_in_text]
-    post_response =  [p.singular_noun(i) or i for i in post_response]
+    python_list = [item.lower() for item in python_list]
+    post_response = [item for item in python_list if item not in words_in_text]
+    post_response = [p.singular_noun(i) or i for i in post_response] + customized_anomaly
     return post_response
 
-# keyword_extract('rule/rule_SHTech.txt')
+
 def baseline():
     client = OpenAI(api_key=key)
     model_list = ["text-davinci-003", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo"]
@@ -406,7 +432,7 @@ def llm_induction(objects):
                                         '''},
 
             {"role": "user",
-             "content": f"Now you are given {objects}. What are the Normal and Anomaly rules you got? Think step by step. Reply following the above format, aim for concrete activities/objects rather than being too abstract. List them using short terms, not an entire sentence."},
+             "content": f"Now you are given {objects}. What are the Normal and Anomaly rules you got? Think step by step. Reply following the above format, aim for concrete activities/objects rather than being too abstract. List them using short terms, not an entire sentence. "},
         ]
     )
     print('=====> Rule Generation:')
