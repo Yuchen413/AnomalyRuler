@@ -22,7 +22,7 @@ def cluster_kmeans(sentences, num_clusters=2):
 
 def anomaly_keywords(rule_path = 'rule/rule_SHTech.txt', regenerate_keyword = False):
     '''
-    The below anomaly keywords are extracted once and used for the experiment in the paper,
+    The below anomaly keywords are extracted and used for the experiment in the paper,
     you can also extract from your rules with the below function.
     '''
     if regenerate_keyword == False:
@@ -192,8 +192,10 @@ def main():
     all_spreds = []
     all_scores = []
     all_ori_scores = []
-    anomaly_keywords(rule_path='rule/rule_SHTech.txt')
-    anomaly_from_rule = np.load('rule/rule_SHTech.npy', allow_pickle=True)
+    if os.path.exists('rule/rule_SHTech.npy'):
+        anomaly_from_rule = np.load('rule/rule_SHTech.npy', allow_pickle=True)
+    else:
+        anomaly_from_rule = anomaly_keywords(rule_path='rule/rule_SHTech.txt')
     for item in entries:
         name = item.split('.')[0]
         input_file_path = f'{data_name}/test_frame_description/{name}.txt'  # Path to your input text file

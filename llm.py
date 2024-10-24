@@ -244,7 +244,11 @@ def mixtral_double_deduct(data, desc_path, rule_path, tokenizer, model, labels):
     saved_result = pd.DataFrame(columns=['answer', 'label', 'pred', 'dummy_pred'])
     rule = open(rule_path, "r").read()
     objects_list = read_line(desc_path)
-    anomaly_from_rule = np.load('rule/rule_SHTech.npy', allow_pickle=True) #This is generated and saved from the Step3
+    if os.path.exists('rule/rule_SHTech.npy'):
+        # This is generated and saved from the Step3
+        anomaly_from_rule = np.load('rule/rule_SHTech.npy', allow_pickle=True)
+    else:
+        anomaly_from_rule = anomaly_keywords()
     for index, obj in enumerate(objects_list):
         ini_pred, _, anomaly_keyword = cluster_keyword(obj, anomaly_from_rule)
         if ini_pred[0] == 1:
