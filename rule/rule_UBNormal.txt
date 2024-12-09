@@ -1,0 +1,33 @@
+**Rules for Normal Human Activities:**
+
+1. Individuals maintain their personal space without interaction. Examples include two people walking in opposite directions without interacting.
+2. Walking with common objects such as backpacks or bags.
+3. Coexist in the same space without interaction.
+4. Normal pace walking in different directions.
+5. Engaging in light social interaction as part of walking.
+6. Sitting on a bench is a normal resting activity performed in urban areas.
+7. Casual interactions: brief greetings, waiting in line, or talking quietly with others.
+
+**Rules for Normal Environmental Objects:**
+
+1. Static objects that function as a part of the environment. Examples are manhole covers and trash bins.
+2. Generic urban infrastructures like buildings, pathways, and lampposts.
+3. Standard urban objects e.g., Posters on the building's glass doors, a manhole cover on the ground.
+4. Natural elements in an urban environment such as trees and plants.
+5. Mundane/static environmental objects.
+
+**Rules for Anomaly Human Activities:**
+
+1. Engaging in activities beyond normal walking such as running, dancing, fighting, or engaging in unusual movements such as crawling or jumping, also any sort of close interaction between individuals.
+2. Non-walking movements in areas specifically designated for pedestrians. This includes individuals riding a bicycle, scooting, and skateboarding.
+3. Rapid movement beyond the typical pace of individuals in that environment.
+4. May include any other mode of transport. e.g., riding a bicycle, scooting, skateboarding.
+5. Unexpected individual behavior that stands out from the typical pattern of the crowd.
+
+**Rules for Anomaly Environmental Objects:**
+
+1. Objects that move or change in an urban environment including vehicles, objects flying in the air, or the sudden appearance/disappearance of objects.
+2. Infrastructure or fixtures showing abnormal changes, such as twisted fences, severely bent poles, or signboards lying on the ground away from their proper mounts.
+3. Presence of unusual or unexpected urban objects. The abnormal size, position, behavior of municipal utilities like a motorbike placed inside a building corridor.
+4. Unrecognized or out-of-context items: Foreign objects with no clear purpose, like a farm tool in a city park, electronic devices placed suspiciously near entrances, or bulky objects blocking emergency exits.
+
